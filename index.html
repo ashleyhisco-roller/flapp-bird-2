@@ -1,1693 +1,1164 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Flappy Bird Deluxe</title>
-  <style>
-    body {
-      margin: 0;
-      background: #000;
-      overflow: hidden; /* lock page scroll */
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-    }
-    canvas {
-      image-rendering: pixelated;
-      image-rendering: crisp-edges;
-      border: 2px solid #fff;
-      background: #000;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mega Flappy Bird: Collections v1.01.00</title>
+    <style>
+        :root {
+            --bg-common: #8e8e93;
+            --bg-rare: #007aff;
+            --bg-deluxe: #5856d6;
+            --bg-legend: #ff9500;
+            --bg-mystic: #ff2d55;
+            
+            --coin-color: #ffd700;
+            --gem-color: #00f0ff;
+            --feather-color: #ff00ff;
+            --egg-color: #00ff66;
+            --essence-color: #a100ff;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #111;
+            color: #fff;
+            cursor: default;
+        }
+
+        #app-container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            max-width: 480px;
+            max-height: 850px;
+            margin: 0 auto;
+            background: #222;
+            overflow: hidden;
+            box-shadow: 0 0 30px rgba(0,0,0,0.9);
+            border-left: 1px solid #333;
+            border-right: 1px solid #333;
+        }
+
+        .screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            display: none;
+            flex-direction: column;
+            background: #222;
+            padding: 15px;
+            overflow-y: auto;
+            padding-bottom: 40px;
+        }
+
+        .screen.active {
+            display: flex;
+        }
+
+        h1, h2, h3 {
+            text-align: center;
+            margin-bottom: 15px;
+            text-shadow: 2px 2px 0px #000;
+            letter-spacing: 1px;
+        }
+
+        /* Top Bar & Currency */
+        .top-currency-bar {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 4px;
+            background: rgba(0,0,0,0.6);
+            padding: 10px 4px;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 10px;
+            border: 1px solid #333;
+            z-index: 10;
+        }
+        .currency-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .currency-icon {
+            font-size: 18px;
+            margin-bottom: 2px;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+        }
+        .c-coin { color: var(--coin-color); }
+        .c-gem { color: var(--gem-color); }
+        .c-feather { color: var(--feather-color); }
+        .c-egg { color: var(--egg-color); }
+        .c-essence { color: var(--essence-color); }
+
+        /* Main Menu Layout */
+        #menu-screen {
+            background: linear-gradient(to bottom, #1a2a6c, #b21f1f, #fdbb2d);
+            justify-content: space-between;
+            align-items: center;
+            padding: 30px 20px;
+        }
+        .version-tag {
+            font-size: 12px;
+            opacity: 0.7;
+            position: absolute;
+            bottom: 5px;
+            right: 10px;
+        }
+        .menu-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 100%;
+        }
+        .btn {
+            background: #ff9800;
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 5px 0 #e65100;
+            text-align: center;
+            transition: transform 0.05s, box-shadow 0.05s;
+        }
+        .btn:hover {
+            filter: brightness(1.1);
+        }
+        .btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #e65100;
+        }
+        .btn-back {
+            background: #555;
+            box-shadow: 0 5px 0 #333;
+            margin-top: auto;
+            margin-bottom: 10px;
+        }
+        .btn-back:active {
+            box-shadow: 0 2px 0 #333;
+        }
+
+        /* Active Bird Display */
+        .active-bird-preview {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            width: 100%;
+            margin-bottom: 15px;
+            border: 2px solid #fff;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        /* Game Canvas Area */
+        #game-screen {
+            padding: 0;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .game-overlay {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            pointer-events: none;
+        }
+        .game-score {
+            font-size: 50px;
+            font-weight: 900;
+            text-shadow: 3px 3px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+        }
+
+        /* Index Styles */
+        .index-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        .search-bar {
+            flex: 1;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #444;
+            background: #333;
+            color: #fff;
+        }
+        .filter-select {
+            padding: 10px;
+            border-radius: 6px;
+            background: #444;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        .grid-layout {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+        .bird-card {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            position: relative;
+            border: 3px solid transparent;
+            font-size: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            cursor: pointer;
+        }
+        .bird-card.discovered { background: #3a3a3a; }
+        .bird-card.undiscovered { opacity: 0.5; cursor: not-allowed; }
+        
+        .rarity-common { border-color: var(--bg-common); color: #fff;}
+        .rarity-rare { border-color: var(--bg-rare); color: #9cd6ff; text-shadow: 0 0 4px rgba(0,122,255,0.5); }
+        .rarity-deluxe { border-color: var(--bg-deluxe); color: #d4bbff; text-shadow: 0 0 4px rgba(88,86,214,0.5); }
+        .rarity-legend { border-color: var(--bg-legend); color: #ffe39c; text-shadow: 0 0 4px rgba(255,149,0,0.5); }
+        .rarity-mystic { border-color: var(--bg-mystic); color: #ff9cb3; text-shadow: 0 0 6px rgba(255,45,85,0.8); }
+
+        .card-cube {
+            width: 44px;
+            height: 44px;
+            margin: 5px auto;
+            border-radius: 6px;
+            box-shadow: inset 0 -4px 0 rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.4);
+            position: relative;
+        }
+        .mutation-badge {
+            background: #f0f;
+            color: white;
+            font-size: 8px;
+            font-weight: bold;
+            padding: 2px 4px;
+            border-radius: 4px;
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+        }
+
+        /* Packs System */
+        .pack-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .pack-card {
+            background: #2a2a2a;
+            border: 2px solid #444;
+            border-radius: 12px;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+        }
+        .pack-info h3 { margin: 0; text-align: left; }
+        
+        /* Animation Overlay for Packs */
+        #pack-animation-overlay {
+            position: absolute;
+            top:0; left:0; width:100%; height:100%;
+            background: rgba(0,0,0,0.95);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 100;
+        }
+        .anim-pack-cube {
+            width: 130px;
+            height: 130px;
+            background: linear-gradient(135deg, #ff9500, #ff2d55);
+            border-radius: 16px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 25px rgba(255,149,0,0.4), inset 0 -10px 0 rgba(0,0,0,0.2);
+            animation: shake 0.4s infinite;
+            border: 4px solid #fff;
+        }
+        @keyframes shake {
+            0% { transform: translate(2px, 1px) rotate(0deg); }
+            20% { transform: translate(-2px, -2px) rotate(-2deg); }
+            40% { transform: translate(-3px, 0px) rotate(2deg); }
+            60% { transform: translate(2px, 2px) rotate(0deg); }
+            80% { transform: translate(-1px, -1px) rotate(2deg); }
+            100% { transform: translate(2px, -2px) rotate(-1deg); }
+        }
+        .reward-reveal {
+            display: none;
+            text-align: center;
+            animation: scaleUp 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        @keyframes scaleUp {
+            0% { transform: scale(0.4); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        /* Map Select */
+        .map-card {
+            background: #333;
+            border-radius: 10px;
+            padding: 18px;
+            margin-bottom: 12px;
+            border: 3px solid transparent;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            text-shadow: 1px 1px 2px #000;
+            cursor: pointer;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .map-card.selected {
+            border-color: #00ff66;
+            transform: scale(1.02);
+        }
+
+        /* Daily Wheel */
+        .wheel-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 20px;
+        }
+        .wheel {
+            width: 270px;
+            height: 270px;
+            border-radius: 50%;
+            border: 8px solid #fff;
+            position: relative;
+            overflow: hidden;
+            transition: transform 4s cubic-bezier(0.1, 0.8, 0.1, 1);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.6);
+            background: conic-gradient(
+                #ff3b30 0deg 60deg,
+                #007aff 60deg 120deg,
+                #4cd964 120deg 180deg,
+                #ffcc00 180deg 240deg,
+                #5856d6 240deg 300deg,
+                #ff9500 300deg 360deg
+            );
+        }
+        .wheel-pointer {
+            width: 0; height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 25px solid white;
+            position: absolute;
+            top: 15px; z-index: 10;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
+        }
+
+        /* Upgrades Screen */
+        .upgrade-row {
+            background: #333;
+            padding: 14px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        /* Odds Modal popup */
+        .modal {
+            position: absolute;
+            top: 10%; left: 5%; width: 90%; height: 75%;
+            background: rgba(15,15,15,0.98);
+            border: 2px solid #555;
+            border-radius: 12px;
+            z-index: 200;
+            display: none;
+            flex-direction: column;
+            padding: 20px;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+        }
+    </style>
 </head>
 <body>
-  <canvas id="game" width="400" height="600"></canvas>
-  <script>
-    const canvas = document.getElementById("game");
-    const ctx = canvas.getContext("2d");
 
-    // ---------- Core game state ----------
-    let gameState = "mainMenu"; // mainMenu, mapSelect, index, shop, roll, countdown, playing, playingMulti, dead
-    let frame = 0;
+<div id="app-container">
 
-    const GAME_SETTINGS = {
-      gravity: 0.4,
-      lift: -7,
-      pipeSpeed: 2,
-      gap: 140,
-      coinMult: 1
+    <div class="top-currency-bar">
+        <div class="currency-item"><span class="currency-icon c-coin">🪙</span><span id="label-coins">0</span></div>
+        <div class="currency-item"><span class="currency-icon c-gem">💎</span><span id="label-gems">0</span></div>
+        <div class="currency-item"><span class="currency-icon c-feather">🪶</span><span id="label-feathers">0</span></div>
+        <div class="currency-item"><span class="currency-icon c-egg">🥚</span><span id="label-eggs">0</span></div>
+        <div class="currency-item"><span class="currency-icon c-essence">🧪</span><span id="label-essence">0</span></div>
+    </div>
+
+    <div id="pack-animation-overlay">
+        <div class="anim-pack-cube" id="anim-pack-cube"></div>
+        <div class="reward-reveal" id="reward-reveal">
+            <h2 id="reward-title">NEW BIRD UNLOCKED!</h2>
+            <div class="card-cube" id="reward-visual" style="width: 80px; height: 80px; margin: 20px auto;"></div>
+            <h3 id="reward-name">Super Bird</h3>
+            <p id="reward-meta" style="color: #aaa; margin-top: 5px;">Rarity: Legend</p>
+            <button class="btn" style="margin-top: 25px; min-width: 15px;" onclick="closePackAnimation()">COLLECT BIRD</button>
+        </div>
+    </div>
+
+    <div id="chances-modal" class="modal">
+        <h2>Pack Drop Rates</h2>
+        <div id="chances-content" style="font-size:14px; line-height: 1.7; background: #222; padding: 15px; border-radius: 8px;"></div>
+        <button class="btn btn-back" style="margin-top:20px;" onclick="document.getElementById('chances-modal').style.display='none'">Close</button>
+    </div>
+
+    <div id="menu-screen" class="screen active">
+        <div>
+            <h1 style="font-size: 28px; margin-top: 10px;">MEGA FLAPPY BIRD</h1>
+            <div class="active-bird-preview">
+                <p style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #aaa;">Current Active Bird</p>
+                <h3 id="menu-active-bird-name" style="margin: 5px 0 10px 0;">Loading...</h3>
+                <div id="menu-active-bird-cube" class="card-cube" style="width: 60px; height: 60px; margin: 10px auto;"></div>
+                <p id="menu-active-bird-multi" style="font-size:15px; color:#ffeb3b; font-weight:bold;">Multi: 1.0x</p>
+            </div>
+            <button class="btn" style="width:100%; background:#4cd964; box-shadow: 0 5px 0 #248a36;" onclick="selectBestBird()">⚡ AUTO-SELECT BEST BIRD</button>
+        </div>
+
+        <div class="menu-buttons">
+            <button class="btn" onclick="startGame()">▶ PLAY GAME</button>
+            <button class="btn" onclick="switchScreen('index-screen'); renderIndex();">📖 BIRD INDEX</button>
+            <button class="btn" onclick="switchScreen('packs-screen')">🛍️ SHOP & PACKS</button>
+            <button class="btn" onclick="switchScreen('maps-screen'); renderMaps();">🗺️ SELECT MAP</button>
+            <button class="btn" onclick="switchScreen('upgrades-screen')">🛠️ UPGRADERS</button>
+            <button class="btn" onclick="switchScreen('wheel-screen')">🎡 DAILY WHEEL</button>
+        </div>
+        <div class="version-tag">v1.01.00</div>
+    </div>
+
+    <div id="game-screen" class="screen">
+        <div class="game-overlay">
+            <div class="game-score" id="game-score-display">0</div>
+            <div id="game-multiplier-display" style="color: gold; font-weight: bold; font-size: 14px; text-shadow: 1px 1px 2px #000;">Multi: 1.0x</div>
+        </div>
+        <canvas id="gameCanvas"></canvas>
+    </div>
+
+    <div id="index-screen" class="screen">
+        <h2>BIRD INDEX</h2>
+        <div class="index-controls">
+            <input type="text" id="index-search" class="search-bar" placeholder="Search Bird..." oninput="renderIndex()">
+            <select id="index-filter" class="filter-select" onchange="renderIndex()">
+                <option value="all">All Rarities</option>
+                <option value="Common">Common</option>
+                <option value="Rare">Rare</option>
+                <option value="Deluxe">Deluxe</option>
+                <option value="Legend">Legend</option>
+                <option value="Mystic">Mystic</option>
+            </select>
+        </div>
+        <div class="grid-layout" id="index-grid" style="flex:1;"></div>
+        <button class="btn btn-back" onclick="switchScreen('menu-screen')">Back to Menu</button>
+    </div>
+
+    <div id="packs-screen" class="screen">
+        <h2>SHOP & PACKS</h2>
+        <button class="btn" style="background:#5856d6; box-shadow:0 5px 0 #3d3b9e; margin-bottom: 15px;" onclick="showPackChances()">📋 SHOW CHANCES & ODDS</button>
+        <div class="pack-grid" id="pack-shop-list"></div>
+        <button class="btn btn-back" onclick="switchScreen('menu-screen')">Back to Menu</button>
+    </div>
+
+    <div id="maps-screen" class="screen">
+        <h2>SELECT MAP</h2>
+        <div id="maps-list" style="flex: 1;"></div>
+        <button class="btn btn-back" onclick="switchScreen('menu-screen')">Back to Menu</button>
+    </div>
+
+    <div id="upgrades-screen" class="screen">
+        <h2>UPGRADERS</h2>
+        <div style="flex: 1;">
+            <div class="upgrade-row">
+                <div>
+                    <strong>Coin Boost</strong><br>
+                    <span style="font-size:12px; color: #aaa;">Level <span id="up-coin-lvl">1</span> (+20%/lvl)</span>
+                </div>
+                <button class="btn" id="btn-up-coin" onclick="buyUpgrade('coin')">100 🪙</button>
+            </div>
+            <div class="upgrade-row">
+                <div>
+                    <strong>Gem Boost</strong><br>
+                    <span style="font-size:12px; color: #aaa;">Level <span id="up-gem-lvl">1</span> (+20%/lvl)</span>
+                </div>
+                <button class="btn" id="btn-up-gem" onclick="buyUpgrade('gem')">50 💎</button>
+            </div>
+        </div>
+        <button class="btn btn-back" onclick="switchScreen('menu-screen')">Back to Menu</button>
+    </div>
+
+    <div id="wheel-screen" class="screen">
+        <h2>DAILY WHEEL</h2>
+        <div class="wheel-container">
+            <div class="wheel-pointer"></div>
+            <div class="wheel" id="wheel-object"></div>
+            <button class="btn" id="btn-spin-wheel" style="margin-top: 30px; width: 180px;" onclick="spinWheel()">SPIN WHEEL</button>
+            <p id="wheel-status-msg" style="margin-top:15px; font-weight:bold; text-align:center; color: #4cd964; min-height: 20px;"></p>
+        </div>
+        <button class="btn btn-back" onclick="switchScreen('menu-screen')">Back to Menu</button>
+    </div>
+
+</div>
+
+<script>
+    // --- DATABASE: SECURE DEFINED BIRDS AND PACKS ---
+    const BIRDS_DATABASE = [
+        { id: "b1", name: "Sparrow Cube", rarity: "Common", baseColor: "#a1887f", secondaryColor: "#5d4037", pack: "Common", scoreMulti: 1.0 },
+        { id: "b2", name: "Pigeon Cube", rarity: "Common", baseColor: "#90a4ae", secondaryColor: "#455a64", pack: "Common", scoreMulti: 1.1 },
+        { id: "b3", name: "Robin Cube", rarity: "Common", baseColor: "#ff8a65", secondaryColor: "#e64a19", pack: "Common", scoreMulti: 1.2 },
+        { id: "b4", name: "Swift Jet", rarity: "Rare", baseColor: "#4fc3f7", secondaryColor: "#0288d1", pack: "Rare", scoreMulti: 1.5 },
+        { id: "b5", name: "Falcon Strike", rarity: "Rare", baseColor: "#fff176", secondaryColor: "#fbc02d", pack: "Rare", scoreMulti: 1.7 },
+        { id: "b6", name: "Raven Shadow", rarity: "Rare", baseColor: "#757575", secondaryColor: "#212121", pack: "Rare", scoreMulti: 2.0 },
+        { id: "b7", name: "Parrot Prism", rarity: "Deluxe", baseColor: "#00e676", secondaryColor: "#00c853", pack: "Deluxe", scoreMulti: 2.5 },
+        { id: "b8", name: "Owl Chrono", rarity: "Deluxe", baseColor: "#b388ff", secondaryColor: "#7c4dff", pack: "Deluxe", scoreMulti: 3.0 },
+        { id: "b9", name: "Macaw Majesty", rarity: "Deluxe", baseColor: "#ff1744", secondaryColor: "#d50000", pack: "Deluxe", scoreMulti: 3.5 },
+        { id: "b10", name: "Phoenix Reborn", rarity: "Legend", baseColor: "#ff3d00", secondaryColor: "#ffea00", pack: "Legend", scoreMulti: 5.0 },
+        { id: "b11", name: "Griffin Gold", rarity: "Legend", baseColor: "#ffea00", secondaryColor: "#ff6d00", pack: "Legend", scoreMulti: 6.5 },
+        { id: "b12", name: "Thunderbird", rarity: "Legend", baseColor: "#00e5ff", secondaryColor: "#2979ff", pack: "Legend", scoreMulti: 8.0 },
+        { id: "b13", name: "Void Nebula", rarity: "Mystic", baseColor: "#d500f9", secondaryColor: "#4a148c", pack: "Mystic", scoreMulti: 12.0 },
+        { id: "b14", name: "Solar Core Bird", rarity: "Mystic", baseColor: "#ff6d00", secondaryColor: "#ff3d00", pack: "Mystic", scoreMulti: 15.0 },
+        { id: "b15", name: "Cosmic Singularity", rarity: "Mystic", baseColor: "#00c853", secondaryColor: "#1a237e", pack: "Mystic", scoreMulti: 25.0 },
+        { id: "b16", name: "Cherry Blossom", rarity: "Rare", baseColor: "#f48fb1", secondaryColor: "#c2185b", pack: "Spring", scoreMulti: 1.8 },
+        { id: "b17", name: "Sprout Wing", rarity: "Common", baseColor: "#a5d6a7", secondaryColor: "#388e3c", pack: "Spring", scoreMulti: 1.3 },
+        { id: "b18", name: "Sun Flare Fly", rarity: "Legend", baseColor: "#fff59d", secondaryColor: "#f57c00", pack: "Summer", scoreMulti: 5.5 },
+        { id: "b19", name: "Beach Nomad", rarity: "Rare", baseColor: "#80deea", secondaryColor: "#0097a7", pack: "Summer", scoreMulti: 2.1 },
+        { id: "b20", name: "Amber Leaf", rarity: "Deluxe", baseColor: "#ffcc80", secondaryColor: "#e65100", pack: "Autumn", scoreMulti: 3.2 },
+        { id: "b21", name: "Harvest Crest", rarity: "Common", baseColor: "#bcaaa4", secondaryColor: "#5d4037", pack: "Autumn", scoreMulti: 1.4 },
+        { id: "b22", name: "Glacier Peak", rarity: "Mystic", baseColor: "#e0f7fa", secondaryColor: "#006064", pack: "Winter", scoreMulti: 14.0 },
+        { id: "b23", name: "Frost Bite", rarity: "Deluxe", baseColor: "#90caf9", secondaryColor: "#1565c0", pack: "Winter", scoreMulti: 3.8 },
+    ];
+
+    const PACKS_CONFIG = [
+        { id: "p_com", name: "Common Pack", cost: 100, currency: "coins", contains: ["Common", "Rare"] },
+        { id: "p_rare", name: "Rare Pack", cost: 350, currency: "coins", contains: ["Rare", "Deluxe"] },
+        { id: "p_del", name: "Deluxe Pack", cost: 50, currency: "gems", contains: ["Deluxe", "Legend"] },
+        { id: "p_leg", name: "Legend Pack", cost: 200, currency: "gems", contains: ["Legend", "Mystic"] },
+        { id: "p_mys", name: "Mystic Pack", cost: 100, currency: "essence", contains: ["Legend", "Mystic"] },
+        { id: "p_spr", name: "Spring Pack", cost: 20, currency: "feathers", contains: ["Spring"] },
+        { id: "p_sum", name: "Summer Pack", cost: 20, currency: "feathers", contains: ["Summer"] },
+        { id: "p_aut", name: "Autumn Pack", cost: 10, currency: "eggs", contains: ["Autumn"] },
+        { id: "p_win", name: "Winter Pack", cost: 25, currency: "eggs", contains: ["Winter"] },
+    ];
+
+    const MAPS_CONFIG = [
+        { id: "m_classic", name: "Retro Blue Skies", sky: "#70c5ce", pipe: "#73bf2e", pipeLip: "#529419", ground: "#ded895" },
+        { id: "m_spring", name: "Blossom Fields", sky: "#f8bbd0", pipe: "#81c784", pipeLip: "#558b2f", ground: "#e8f5e9" },
+        { id: "m_summer", name: "Desert Heatwave", sky: "#ffb74d", pipe: "#e65100", pipeLip: "#bf360c", ground: "#ffe082" },
+        { id: "m_autumn", name: "Harvest Forest", sky: "#d84315", pipe: "#ffb300", pipeLip: "#f57c00", ground: "#4e342e" },
+        { id: "m_winter", name: "Glacial Frost", sky: "#b2ebf2", pipe: "#4dd0e1", pipeLip: "#0097a7", ground: "#ffffff" }
+    ];
+
+    // --- STATE SYSTEM WITH SAVING ---
+    let playerState = {
+        currencies: { coins: 500, gems: 50, feathers: 10, eggs: 10, essence: 5 },
+        unlockedBirds: ["b1"], 
+        mutations: [], 
+        activeBirdId: "b1",
+        activeMutation: null, 
+        selectedMap: "m_classic",
+        upgrades: { coin: 1, gem: 1 },
+        lastWheelSpin: 0
     };
 
-    let score = 0;
-    let highScore = 0;
-    let coins = 0;
-
-    let countdown = 3;
-    let isMultiplayer = false;
-
-    // ---------- Bird data ----------
-    /* ---------------- BIRD RARITY COLORS ---------------- */
-
-const rarityColors = {
-  Common:   "#b0bec5",
-  Uncommon: "#66bb6a",
-  Rare:     "#42a5f5",
-  Epic:     "#ab47bc",
-  Legendary:"#ffb300",
-  Mythic:   "#ff5252"
-};
-
-/* ---------------- FULL BIRD DATABASE (40 BIRDS) ---------------- */
-
-const allBirds = [
-  // BASIC EGG
-  { id: 1, name: "Sparrow", rarity: "Common", multiplier: 1.00,
-    sprite:{body:"#cfd8dc", wing:"#90a4ae", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#eceff1", highlight:"#d7ccc8"} },
-
-  { id: 2, name: "Pigeon", rarity: "Common", multiplier: 1.00,
-    sprite:{body:"#b0bec5", wing:"#78909c", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#cfd8dc", highlight:"#80deea"} },
-
-  { id: 3, name: "Robin", rarity: "Common", multiplier: 1.05,
-    sprite:{body:"#ff8a65", wing:"#d84315", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffca28", accent:"#ffab91", highlight:"#ff7043"} },
-
-  { id: 4, name: "Crow", rarity: "Common", multiplier: 1.05,
-    sprite:{body:"#424242", wing:"#212121", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#616161", highlight:"#9e9e9e"} },
-
-  { id: 5, name: "Starling", rarity: "Common", multiplier: 1.10,
-    sprite:{body:"#455a64", wing:"#263238", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#607d8b", highlight:"#8e24aa"} },
-
-  { id: 6, name: "Blackbird", rarity: "Common", multiplier: 1.10,
-    sprite:{body:"#212121", wing:"#000000", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffca28", accent:"#424242", highlight:"#ffeb3b"} },
-
-  { id: 7, name: "Finch", rarity: "Common", multiplier: 1.15,
-    sprite:{body:"#ffeb3b", wing:"#fbc02d", eye:"#ffffff", pupil:"#000000",
-            beak:"#ff9800", accent:"#fff59d", highlight:"#fdd835"} },
-
-  { id: 8, name: "Wren", rarity: "Uncommon", multiplier: 1.25,
-    sprite:{body:"#8d6e63", wing:"#5d4037", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#a1887f", highlight:"#bcaaa4"} },
-
-  { id: 9, name: "Chickadee", rarity: "Uncommon", multiplier: 1.30,
-    sprite:{body:"#cfd8dc", wing:"#90a4ae", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#eceff1", highlight:"#b3e5fc"} },
-
-  { id: 10, name: "Titmouse", rarity: "Uncommon", multiplier: 1.35,
-    sprite:{body:"#b0bec5", wing:"#78909c", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#cfd8dc", highlight:"#ffcc80"} },
-
-  // FOREST EGG
-  { id: 11, name: "Blue Jay", rarity: "Uncommon", multiplier: 1.40,
-    sprite:{body:"#29b6f6", wing:"#0288d1", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#4fc3f7", highlight:"#82b1ff"} },
-
-  { id: 12, name: "Magpie", rarity: "Uncommon", multiplier: 1.45,
-    sprite:{body:"#ffffff", wing:"#263238", eye:"#000000", pupil:"#000000",
-            beak:"#ffb74d", accent:"#90a4ae", highlight:"#00e5ff"} },
-
-  { id: 13, name: "Nuthatch", rarity: "Uncommon", multiplier: 1.50,
-    sprite:{body:"#90a4ae", wing:"#607d8b", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#cfd8dc", highlight:"#c5e1a5"} },
-
-  { id: 14, name: "Kinglet", rarity: "Uncommon", multiplier: 1.55,
-    sprite:{body:"#aed581", wing:"#7cb342", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#c5e1a5", highlight:"#ffeb3b"} },
-
-  { id: 15, name: "Treecreeper", rarity: "Uncommon", multiplier: 1.60,
-    sprite:{body:"#8d6e63", wing:"#5d4037", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#a1887f", highlight:"#d7ccc8"} },
-
-  { id: 16, name: "Woodpecker", rarity: "Rare", multiplier: 1.80,
-    sprite:{body:"#ffffff", wing:"#424242", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#ef5350", highlight:"#ff5252"} },
-
-  { id: 17, name: "Hawk", rarity: "Rare", multiplier: 2.00,
-    sprite:{body:"#8d6e63", wing:"#5d4037", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#a1887f", highlight:"#ffab40"} },
-
-  { id: 18, name: "Heron", rarity: "Rare", multiplier: 2.10,
-    sprite:{body:"#90caf9", wing:"#42a5f5", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#bbdefb", highlight:"#b3e5fc"} },
-
-  { id: 19, name: "Owl", rarity: "Legendary", multiplier: 2.60,
-    sprite:{body:"#bcaaa4", wing:"#8d6e63", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#d7ccc8", highlight:"#ffe082"} },
-
-  // EXOTIC EGG
-  { id: 20, name: "Parrot", rarity: "Rare", multiplier: 2.20,
-    sprite:{body:"#66bb6a", wing:"#2e7d32", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#a5d6a7", highlight:"#ff1744"} },
-
-  { id: 21, name: "Macaw", rarity: "Rare", multiplier: 2.30,
-    sprite:{body:"#29b6f6", wing:"#0288d1", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#4fc3f7", highlight:"#ffea00"} },
-
-  { id: 22, name: "Lyrebird", rarity: "Rare", multiplier: 2.40,
-    sprite:{body:"#8d6e63", wing:"#5d4037", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#a1887f", highlight:"#8e24aa"} },
-
-  { id: 23, name: "Toucan", rarity: "Epic", multiplier: 2.80,
-    sprite:{body:"#212121", wing:"#000000", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffca28", accent:"#ff7043", highlight:"#ff6f00"} },
-
-  { id: 24, name: "Peacock", rarity: "Epic", multiplier: 3.00,
-    sprite:{body:"#1e88e5", wing:"#0d47a1", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#64b5f6", highlight:"#00e5ff"} },
-
-  { id: 25, name: "Flamingo", rarity: "Epic", multiplier: 3.10,
-    sprite:{body:"#ff8a80", wing:"#ff5252", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#ffab91", highlight:"#ff80ab"} },
-
-  { id: 26, name: "Cassowary", rarity: "Epic", multiplier: 3.20,
-    sprite:{body:"#263238", wing:"#000000", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#4fc3f7", highlight:"#00b0ff"} },
-
-  { id: 27, name: "Secretary Bird", rarity: "Epic", multiplier: 3.30,
-    sprite:{body:"#cfd8dc", wing:"#90a4ae", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#ff7043", highlight:"#ff9100"} },
-
-  { id: 28, name: "Bird of Paradise", rarity: "Mythic", multiplier: 4.00,
-    sprite:{body:"#ffb74d", wing:"#f57c00", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffca28", accent:"#ffcc80", highlight:"#ff4081"} },
-
-  { id: 29, name: "Hoatzin", rarity: "Mythic", multiplier: 4.20,
-    sprite:{body:"#a1887f", wing:"#6d4c41", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#d7ccc8", highlight:"#ffab40"} },
-
-  // COASTAL EGG
-  { id: 30, name: "Seagull", rarity: "Common", multiplier: 1.20,
-    sprite:{body:"#ffffff", wing:"#b0bec5", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffca28", accent:"#eceff1", highlight:"#81d4fa"} },
-
-  { id: 31, name: "Pelican", rarity: "Rare", multiplier: 2.30,
-    sprite:{body:"#ffffff", wing:"#90a4ae", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffca28", accent:"#cfd8dc", highlight:"#ffe082"} },
-
-  { id: 32, name: "Ibis", rarity: "Rare", multiplier: 2.40,
-    sprite:{body:"#f5f5f5", wing:"#bdbdbd", eye:"#ffffff", pupil:"#000000",
-            beak:"#ff7043", accent:"#eeeeee", highlight:"#ff8a80"} },
-
-  { id: 33, name: "Cormorant", rarity: "Rare", multiplier: 2.50,
-    sprite:{body:"#263238", wing:"#000000", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#455a64", highlight:"#4fc3f7"} },
-
-  { id: 34, name: "Albatross", rarity: "Legendary", multiplier: 3.10,
-    sprite:{body:"#ffffff", wing:"#90a4ae", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffca28", accent:"#cfd8dc", highlight:"#fff59d"} },
-
-  { id: 35, name: "Condor", rarity: "Legendary", multiplier: 3.30,
-    sprite:{body:"#424242", wing:"#212121", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#616161", highlight:"#ffab91"} },
-
-  { id: 36, name: "Puffin", rarity: "Mythic", multiplier: 4.50,
-    sprite:{body:"#212121", wing:"#000000", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#ff7043", highlight:"#ff6f00"} },
-
-  // ULTRA EGG
-  { id: 37, name: "Hummingbird", rarity: "Mythic", multiplier: 4.80,
-    sprite:{body:"#66bb6a", wing:"#2e7d32", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#a5d6a7", highlight:"#00e676"} },
-
-  { id: 38, name: "Kingfisher", rarity: "Mythic", multiplier: 5.00,
-    sprite:{body:"#29b6f6", wing:"#0288d1", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#4fc3f7", highlight:"#40c4ff"} },
-
-  { id: 39, name: "Kiwi", rarity: "Mythic", multiplier: 5.20,
-    sprite:{body:"#8d6e63", wing:"#5d4037", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#a1887f", highlight:"#d7ccc8"} },
-
-  { id: 40, name: "Resp. Quetzal", rarity: "Mythic", multiplier: 5.40,
-    sprite:{body:"#26a69a", wing:"#00796b", eye:"#ffffff", pupil:"#000000",
-            beak:"#ffb74d", accent:"#4db6ac", highlight:"#00e5ff"} }
-];
-
-/* ---------------- UNLOCK / EQUIP HELPERS ---------------- */
-
-let unlockedBirdIds = [1,2]; // start with Sparrow
-let equippedBirdId = 1;
-
-function getBirdById(id) {
-  return allBirds.find(b => b.id === id);
-}
-
-function getEquippedBird() {
-  return getBirdById(equippedBirdId) || allBirds[0];
-}
-
-function getBirdMultiplier() {
-  return getEquippedBird().multiplier;
-}
-
-
-    // ---------- Packs ----------
-    const packs = {
-
-  basic: {
-    name: "Basic Egg",
-    cost: 20,
-    aura: "#b0bec5",
-    pool: [1,2,3,4,5,6,7]
-  },
-
-  woodland: {
-    name: "Woodland Egg",
-    cost: 50,
-    aura: "#81c784",
-    pool: [8,9,10,13,14,15]
-  },
-
-  forest: {
-    name: "Forest Egg",
-    cost: 70,
-    aura: "#66bb6a",
-    pool: [11,12,16,17,18,19]
-  },
-
-  exotic: {
-    name: "Exotic Egg",
-    cost: 120,
-    aura: "#ab47bc",
-    pool: [20,21,22,24,25]
-  },
-
-  jungle: {
-    name: "Jungle Egg",
-    cost: 140,
-    aura: "#8bc34a",
-    pool: [23,26,27,28,29]
-  },
-
-  coastal: {
-    name: "Coastal Egg",
-    cost: 100,
-    aura: "#42a5f5",
-    pool: [30,31,32,33,34,35,36]
-  },
-
-  ultra: {
-    name: "Ultra Egg",
-    cost: 300,
-    aura: "#ff5252",
-    pool: [37,38,39,40]
-  },
-
-  volcano: {
-    name: "Volcano Egg",
-    cost: 180,
-    aura: "#ff5722",
-    pool: [4,5,6,17,23]
-  },
-
-  arctic: {
-    name: "Arctic Egg",
-    cost: 140,
-    aura: "#80deea",
-    pool: [9,10,18,30,34,36]
-  },
-
-  mountain: {
-    name: "Mountain Egg",
-    cost: 90,
-    aura: "#6d4c41",
-    pool: [3,5,13,17,34,35]
-  },
-
-  cosmic: {
-    name: "Cosmic Egg",
-    cost: 260,
-    aura: "#b388ff",
-    pool: [24,25,28,37,38,40]
-  },
-
-  desert: {
-    name: "Desert Egg",
-    cost: 70,
-    aura: "#ffcc80",
-    pool: [1,3,7,8,17,32]
-  }
-};
-
-
-    function rollFromPack(key) {
-      const p = packs[key];
-      const pool = p.pool;
-      return pool[Math.floor(Math.random()*pool.length)];
+    function saveGame() {
+        localStorage.setItem("mega_flappy_state_v2", JSON.stringify(playerState));
+    }
+    function loadGame() {
+        let saved = localStorage.getItem("mega_flappy_state_v2");
+        if(saved) {
+            try {
+                playerState = JSON.parse(saved);
+                if(!playerState.currencies) playerState.currencies = { coins: 500, gems: 50, feathers: 10, eggs: 10, essence: 5 };
+            } catch(e) { console.error("Error loading save data"); }
+        }
     }
 
-    // ---------- Bird objects ----------
-    const bird = {
-      x: 80,
-      y: 150,
-      width: 20,
-      height: 20,
-      velocity: 0,
-      gravity: GAME_SETTINGS.gravity,
-      lift: GAME_SETTINGS.lift
-    };
+    // --- NAVIGATION UI ---
+    function switchScreen(screenId) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(screenId).classList.add('active');
+        if(screenId !== 'game-screen' && gameLoopId) {
+            cancelAnimationFrame(gameLoopId);
+            gameLoopId = null;
+        }
+        updateTopBar();
+        updateMenuDisplay();
+    }
 
-    const bird2 = {
-      x: 280,
-      y: 150,
-      width: 20,
-      height: 20,
-      velocity: 0,
-      gravity: GAME_SETTINGS.gravity,
-      lift: GAME_SETTINGS.lift
-    };
+    function updateTopBar() {
+        document.getElementById("label-coins").innerText = Math.floor(playerState.currencies.coins);
+        document.getElementById("label-gems").innerText = Math.floor(playerState.currencies.gems);
+        document.getElementById("label-feathers").innerText = Math.floor(playerState.currencies.feathers);
+        document.getElementById("label-eggs").innerText = Math.floor(playerState.currencies.eggs);
+        document.getElementById("label-essence").innerText = Math.floor(playerState.currencies.essence);
+    }
 
-    // ---------- Pipes ----------
-    let pipes = [];
+    function updateMenuDisplay() {
+        let activeBird = BIRDS_DATABASE.find(b => b.id === playerState.activeBirdId) || BIRDS_DATABASE[0];
+        let nameStr = activeBird.name;
+        let finalColor = activeBird.baseColor;
+        let finalMulti = activeBird.scoreMulti;
 
-    // ---------- Particles ----------
-    let jumpParticles = [];
-    let scorePops = [];
+        if (playerState.activeMutation) {
+            nameStr = playerState.activeMutation.toUpperCase() + " " + nameStr;
+            if(playerState.activeMutation === 'shiny') finalColor = '#ffd700';
+            if(playerState.activeMutation === 'shadow') finalColor = '#111111';
+            finalMulti *= 2;
+        }
 
-    // ---------- Map decorations ----------
-    let jungleLeaves = [];
-    let snowflakes = [];
-    let crystalSparkles = [];
-    let neonPulse = 0;
-    let nightFlicker = 0;
+        document.getElementById("menu-active-bird-name").innerText = nameStr;
+        document.getElementById("menu-active-bird-cube").style.backgroundColor = finalColor;
+        document.getElementById("menu-active-bird-multi").innerText = "Score Multi: " + finalMulti.toFixed(1) + "x";
 
-    const maps = {
-      day: {
-        name: "Sunny Plains",
-        bg: "#4fc3f7",
-        ground: "#8bc34a",
-        pipeMain: "#4caf50",
-        pipeLip: "#2e7d32",
-        deco: "clouds"
-      },
-      night: {
-        name: "Starry Night",
-        bg: "#0d47a1",
-        ground: "#1b5e20",
-        pipeMain: "#263238",
-        pipeLip: "#37474f",
-        deco: "stars"
-      },
-      lava: {
-        name: "Lava Caves",
-        bg: "#3e2723",
-        ground: "#5d4037",
-        pipeMain: "#6d4c41",
-        pipeLip: "#4e342e",
-        deco: "lava"
-      },
-      jungle: {
-        name: "Jungle Ruins",
-        bg: "#1b5e20",
-        ground: "#33691e",
-        pipeMain: "#2e7d32",
-        pipeLip: "#1b5e20",
-        deco: "jungleLeaves"
-      },
-      neon: {
-        name: "Neon City",
-        bg: "#000018",
-        ground: "#1a237e",
-        pipeMain: "#00e5ff",
-        pipeLip: "#00b0ff",
-        deco: "neonCity"
-      },
-      crystal: {
-        name: "Crystal Cavern",
-        bg: "#1a237e",
-        ground: "#283593",
-        pipeMain: "#4fc3f7",
-        pipeLip: "#0288d1",
-        deco: "crystals"
-      },
-      snow: {
-        name: "Snowy Peaks",
-        bg: "#90caf9",
-        ground: "#e0e0e0",
-        pipeMain: "#90a4ae",
-        pipeLip: "#78909c",
-        deco: "snow"
-      }
-    };
+        renderShop();
+        document.getElementById("up-coin-lvl").innerText = playerState.upgrades.coin;
+        document.getElementById("btn-up-coin").innerText = (playerState.upgrades.coin * 100) + " 🪙";
+        document.getElementById("up-gem-lvl").innerText = playerState.upgrades.gem;
+        document.getElementById("btn-up-gem").innerText = (playerState.upgrades.gem * 50) + " 💎";
+    }
 
-    let selectedMap = "day";
+    function selectBestBird() {
+        let highestMulti = 0;
+        let bestBirdId = "b1";
+        let bestMut = null;
 
-    function initMapAnimations() {
-      jungleLeaves = [];
-      snowflakes = [];
-      crystalSparkles = [];
-      neonPulse = 0;
-      nightFlicker = 0;
-
-      for (let i=0;i<40;i++) {
-        jungleLeaves.push({
-          x: Math.random()*canvas.width,
-          y: 350 + Math.random()*200
+        BIRDS_DATABASE.forEach(bird => {
+            if(playerState.unlockedBirds.includes(bird.id)) {
+                if(bird.scoreMulti > highestMulti) {
+                    highestMulti = bird.scoreMulti;
+                    bestBirdId = bird.id;
+                    bestMut = null;
+                }
+                if(playerState.mutations.includes(bird.id + ":shiny") && (bird.scoreMulti * 2 > highestMulti)) {
+                    highestMulti = bird.scoreMulti * 2;
+                    bestBirdId = bird.id;
+                    bestMut = "shiny";
+                }
+                if(playerState.mutations.includes(bird.id + ":shadow") && (bird.scoreMulti * 2 > highestMulti)) {
+                    highestMulti = bird.scoreMulti * 2;
+                    bestBirdId = bird.id;
+                    bestMut = "shadow";
+                }
+            }
         });
-      }
 
-      for (let i=0;i<80;i++) {
-        snowflakes.push({
-          x: Math.random()*canvas.width,
-          y: Math.random()*canvas.height
+        playerState.activeBirdId = bestBirdId;
+        playerState.activeMutation = bestMut;
+        saveGame();
+        updateMenuDisplay();
+    }
+
+    // --- INDEX ENGINE ---
+    function renderIndex() {
+        const grid = document.getElementById("index-grid");
+        grid.innerHTML = "";
+        const searchVal = document.getElementById("index-search").value.toLowerCase();
+        const filterVal = document.getElementById("index-filter").value;
+
+        BIRDS_DATABASE.forEach(bird => {
+            const discovered = playerState.unlockedBirds.includes(bird.id);
+            if (filterVal !== "all" && bird.rarity !== filterVal) return;
+            if (discovered && searchVal && !bird.name.toLowerCase().includes(searchVal)) return;
+
+            let card = document.createElement("div");
+            card.className = `bird-card ${discovered ? 'discovered' : 'undiscovered'} rarity-${bird.rarity.toLowerCase()}`;
+
+            if(discovered) {
+                let shinyOwned = playerState.mutations.includes(bird.id + ":shiny");
+                let shadowOwned = playerState.mutations.includes(bird.id + ":shadow");
+                
+                card.innerHTML = `
+                    <div class="card-cube" style="background-color: ${bird.baseColor}; border: 2px solid ${bird.secondaryColor}"></div>
+                    <strong style="display:block;margin-top:4px; text-overflow:ellipsis; overflow:hidden; white-space:nowrap;">${bird.name}</strong>
+                    <div style="font-size:10px; opacity:0.9; margin-top:2px; color: #ffeb3b">x${bird.scoreMulti.toFixed(1)} Multi</div>
+                `;
+                if(shinyOwned || shadowOwned) {
+                    let mutTag = document.createElement("span");
+                    mutTag.className = "mutation-badge";
+                    mutTag.innerText = "MUTANT";
+                    card.appendChild(mutTag);
+                }
+                card.onclick = () => {
+                    playerState.activeBirdId = bird.id;
+                    if(playerState.activeMutation === null && shinyOwned) playerState.activeMutation = "shiny";
+                    else if(playerState.activeMutation === "shiny" && shadowOwned) playerState.activeMutation = "shadow";
+                    else playerState.activeMutation = null;
+                    
+                    saveGame();
+                    updateMenuDisplay();
+                };
+            } else {
+                card.innerHTML = `
+                    <div class="card-cube" style="background-color: #222; border: 2px dashed #555; display:flex; align-items:center; justify-content:center; font-weight:bold; color:#777;">?</div>
+                    <strong>???</strong>
+                    <div style="font-size:10px; opacity:0.5;">Unknown</div>
+                `;
+            }
+            grid.appendChild(card);
         });
-      }
+    }
 
-      for (let i=0;i<40;i++) {
-        crystalSparkles.push({
-          x: Math.random()*canvas.width,
-          y: 380 + Math.random()*200,
-          phase: Math.random()*Math.PI*2
+    // --- SHOP SYSTEM ---
+    function renderShop() {
+        const parent = document.getElementById("pack-shop-list");
+        parent.innerHTML = "";
+        PACKS_CONFIG.forEach(pack => {
+            let item = document.createElement("div");
+            item.className = "pack-card";
+            let cIcon = pack.currency === "coins" ? "🪙" : pack.currency === "gems" ? "💎" : pack.currency === "feathers" ? "🪶" : pack.currency === "eggs" ? "🥚" : "🧪";
+            item.innerHTML = `
+                <div class="pack-info">
+                    <h3 style="color:#fff;">${pack.name}</h3>
+                    <p style="font-size:11px; color:#aaa; margin-top:3px;">Contains: ${pack.contains.join(', ')}</p>
+                </div>
+                <button class="btn" style="background:#28a745; box-shadow:0 4px 0 #19692c; padding: 10px 15px;" onclick="buyPack('${pack.id}')">${pack.cost} ${cIcon}</button>
+            `;
+            parent.appendChild(item);
         });
-      }
     }
 
-    initMapAnimations();
-
-    function updateMapAnimations() {
-      snowflakes.forEach(s => {
-        s.y += 0.5;
-        if (s.y > canvas.height) {
-          s.y = -5;
-          s.x = Math.random()*canvas.width;
-        }
-      });
-
-      neonPulse += 0.05;
-      crystalSparkles.forEach(c => {
-        c.phase += 0.05;
-      });
-      nightFlicker += 0.15;
-    }
-
-    function drawDecorations() {
-      const deco = maps[selectedMap].deco;
-
-      if (deco === "clouds") {
-        ctx.fillStyle = "white";
-        ctx.beginPath();
-        ctx.arc(80, 80, 25, 0, Math.PI * 2);
-        ctx.arc(110, 80, 35, 0, Math.PI * 2);
-        ctx.arc(140, 80, 25, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      if (deco === "stars") {
-        const flicker = 0.4 + 0.6 * (0.5 + 0.5 * Math.sin(nightFlicker));
-        ctx.globalAlpha = flicker;
-        ctx.fillStyle = "white";
-        for (let i = 0; i < 40; i++) {
-          ctx.fillRect(Math.random() * canvas.width, Math.random() * 200, 2, 2);
-        }
-        ctx.globalAlpha = 1;
-      }
-
-      if (deco === "lava") {
-        ctx.fillStyle = "rgba(255,80,0,0.4)";
-        ctx.fillRect(0, canvas.height - 40, canvas.width, 40);
-      }
-
-      if (deco === "jungleLeaves") {
-        ctx.fillStyle = "#2e7d32";
-        jungleLeaves.forEach(l => {
-          ctx.beginPath();
-          ctx.ellipse(l.x, l.y, 6, 12, 0.5, 0, Math.PI*2);
-          ctx.fill();
+    function showPackChances() {
+        let modal = document.getElementById("chances-modal");
+        let content = document.getElementById("chances-content");
+        content.innerHTML = "";
+        PACKS_CONFIG.forEach(p => {
+            content.innerHTML += `💎 <strong>${p.name}:</strong> Drops pooled types (${p.contains.join(', ')}). Has an additional fixed <strong>8% chance</strong> to instantly trigger a Shiny or Shadow Mutation modifier drop upon unlock.<br><br>`;
         });
-      }
-
-      if (deco === "neonCity") {
-        ctx.fillStyle = "#120022";
-        ctx.fillRect(0, 350, 80, 250);
-        ctx.fillRect(90, 320, 60, 280);
-        ctx.fillRect(170, 360, 90, 240);
-        ctx.fillRect(270, 330, 70, 270);
-        ctx.fillRect(350, 370, 50, 230);
-
-        const glow = (Math.sin(neonPulse)+1)/2;
-        ctx.fillStyle = `rgba(0,229,255,${0.3+0.4*glow})`;
-        for (let x=10;x<400;x+=30) {
-          for (let y=360;y<580;y+=25) {
-            ctx.fillRect(x, y, 6, 10);
-          }
-        }
-      }
-
-      if (deco === "crystals") {
-        ctx.fillStyle = "#0d47a1";
-        ctx.fillRect(0, 380, canvas.width, 220);
-        crystalSparkles.forEach(c => {
-          const alpha = 0.3 + 0.3*Math.sin(c.phase);
-          ctx.fillStyle = `rgba(79,195,247,${alpha})`;
-          ctx.beginPath();
-          ctx.moveTo(c.x, c.y-10);
-          ctx.lineTo(c.x+6, c.y);
-          ctx.lineTo(c.x, c.y+10);
-          ctx.lineTo(c.x-6, c.y);
-          ctx.closePath();
-          ctx.fill();
-        });
-      }
-
-      if (deco === "snow") {
-        ctx.fillStyle = "#e3f2fd";
-        snowflakes.forEach(s => {
-          ctx.beginPath();
-          ctx.arc(s.x, s.y, 2, 0, Math.PI*2);
-          ctx.fill();
-        });
-      }
+        modal.style.display = "flex";
     }
 
-    // ---------- Bird drawing ----------
-    /* ---------------- DRAW BIRD SPRITE (blocky but richer) ---------------- */
-
-function drawBirdSprite(birdObj, cx, cy) {
-  const s = birdObj.sprite;
-
-  // SHADOW
-  ctx.fillStyle = "rgba(0,0,0,0.25)";
-  ctx.fillRect(cx - 9, cy + 9, 18, 4);
-
-  // BODY (main block)
-  ctx.fillStyle = s.body;
-  ctx.fillRect(cx - 10, cy - 10, 20, 20);
-
-  // BELLY (lighter underside)
-  ctx.fillStyle = lightenColor(s.body, 0.18);
-  ctx.fillRect(cx - 10, cy + 2, 20, 8);
-
-  // BACK OUTLINE (darker edge)
-  ctx.fillStyle = darkenColor(s.body, 0.25);
-  ctx.fillRect(cx - 10, cy - 10, 2, 20);
-
-  // WING (main)
-  ctx.fillStyle = s.wing;
-  ctx.fillRect(cx - 12, cy - 1, 11, 9);
-
-  // WING STRIPE (extra detail)
-  ctx.fillStyle = darkenColor(s.wing, 0.2);
-  ctx.fillRect(cx - 11, cy + 2, 9, 2);
-
-  // TAIL (blocky)
-  ctx.fillStyle = darkenColor(s.body, 0.3);
-  ctx.fillRect(cx - 14, cy - 2, 6, 8);
-
-  // CREST / HEAD PATCH (uses highlight)
-  ctx.fillStyle = s.highlight;
-  ctx.fillRect(cx - 4, cy - 13, 8, 3);
-
-  // ACCENT (chest patch)
-  ctx.fillStyle = s.accent;
-  ctx.fillRect(cx - 6, cy - 6, 6, 4);
-
-  // EYE WHITE
-  ctx.fillStyle = s.eye;
-  ctx.fillRect(cx + 2, cy - 6, 6, 6);
-
-  // PUPIL
-  ctx.fillStyle = s.pupil;
-  ctx.fillRect(cx + 4, cy - 4, 2, 2);
-
-  // BEAK (blocky)
-  ctx.fillStyle = s.beak;
-  ctx.fillRect(cx + 8, cy - 2, 6, 4);
-  ctx.fillRect(cx + 10, cy - 1, 4, 2);
-
-  // FEET
-  ctx.fillStyle = "#ffcc80";
-  ctx.fillRect(cx - 4, cy + 10, 3, 3);
-  ctx.fillRect(cx + 1, cy + 10, 3, 3);
-}
-
-/* ---------------- COLOR HELPERS ---------------- */
-
-function lightenColor(hex, amount) {
-  const { r, g, b } = hexToRgb(hex);
-  const nr = Math.min(255, Math.floor(r + 255 * amount));
-  const ng = Math.min(255, Math.floor(g + 255 * amount));
-  const nb = Math.min(255, Math.floor(b + 255 * amount));
-  return rgbToHex(nr, ng, nb);
-}
-
-function darkenColor(hex, amount) {
-  const { r, g, b } = hexToRgb(hex);
-  const nr = Math.max(0, Math.floor(r * (1 - amount)));
-  const ng = Math.max(0, Math.floor(g * (1 - amount)));
-  const nb = Math.max(0, Math.floor(b * (1 - amount)));
-  return rgbToHex(nr, ng, nb);
-}
-
-function hexToRgb(hex) {
-  hex = hex.replace("#", "");
-  if (hex.length === 3) {
-    hex = hex.split("").map(c => c + c).join("");
-  }
-  const num = parseInt(hex, 16);
-  return {
-    r: (num >> 16) & 255,
-    g: (num >> 8) & 255,
-    b: num & 255
-  };
-}
-
-function rgbToHex(r, g, b) {
-  return (
-    "#" +
-    [r, g, b]
-      .map(v => v.toString(16).padStart(2, "0"))
-      .join("")
-  );
-}
-
-/* ---------------- DRAW EQUIPPED BIRDS ---------------- */
-
-function drawBird() {
-  drawBirdSprite(getEquippedBird(), bird.x + 10, bird.y + 10);
-}
-
-function drawBird2() {
-  drawBirdSprite(getEquippedBird(), bird2.x + 10, bird2.y + 10);
-}
-
-
-    // ---------- Pipes ----------
-    function drawPipe(p) {
-      ctx.fillStyle = maps[selectedMap].pipeMain;
-      ctx.fillRect(p.x, 0, p.width, p.top);
-      ctx.fillRect(p.x, p.bottomY, p.width, canvas.height - p.bottomY);
-
-      ctx.fillStyle = maps[selectedMap].pipeLip;
-      ctx.fillRect(p.x - 5, p.top - 20, p.width + 10, 20);
-      ctx.fillRect(p.x - 5, p.bottomY, p.width + 10, 20);
-
-      ctx.fillStyle = "rgba(0,0,0,0.2)";
-      ctx.fillRect(p.x + p.width - 5, 0, 5, p.top);
-      ctx.fillRect(p.x + p.width - 5, p.bottomY, 5, canvas.height - p.bottomY);
-    }
-    function drawPipes() {
-      pipes.forEach(drawPipe);
-    }
-
-    // ---------- Jump particles ----------
-    function spawnJumpParticles(x, y) {
-      const birdObj = getEquippedBird();
-      const color = birdObj.sprite.accent;
-      for (let i=0;i<8;i++) {
-        jumpParticles.push({
-          x: x+10,
-          y: y+10,
-          vx: (Math.random()-0.5)*1.5,
-          vy: 1 + Math.random()*1.5,
-          life: 30,
-          color
-        });
-      }
-    }
-    function updateJumpParticles() {
-      jumpParticles.forEach(p => {
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life--;
-      });
-      jumpParticles = jumpParticles.filter(p => p.life>0);
-    }
-    function drawJumpParticles() {
-      jumpParticles.forEach(p => {
-        const alpha = p.life/30;
-        ctx.fillStyle = p.color;
-        ctx.globalAlpha = alpha;
-        ctx.fillRect(p.x, p.y, 3, 3);
-        ctx.globalAlpha = 1;
-      });
-    }
-
-    // ---------- Score pops ----------
-    function addScorePop(x, y) {
-      scorePops.push({ x, y, life: 30 });
-    }
-    function updateScorePops() {
-      scorePops.forEach(s => {
-        s.y -= 0.7;
-        s.life--;
-      });
-      scorePops = scorePops.filter(s => s.life>0);
-    }
-    function drawScorePops() {
-      scorePops.forEach(s => {
-        const alpha = s.life/30;
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = "white";
-        ctx.font = "16px Arial";
-        ctx.fillText("+1", s.x, s.y);
-        ctx.globalAlpha = 1;
-      });
-    }
-
-    // ---------- Progress save/load ----------
-    function saveProgress() {
-      const data = {
-        coins,
-        highScore,
-        unlockedBirdIds,
-        equippedBirdId
-      };
-      try {
-        localStorage.setItem("flappyDeluxeSave", JSON.stringify(data));
-      } catch(e) {}
-    }
-
-    function loadProgress() {
-      try {
-        const raw = localStorage.getItem("flappyDeluxeSave");
-        if (!raw) return;
-        const data = JSON.parse(raw);
-        if (typeof data.coins === "number") coins = data.coins;
-        if (typeof data.highScore === "number") highScore = data.highScore;
-        if (Array.isArray(data.unlockedBirdIds)) unlockedBirdIds = data.unlockedBirdIds;
-        if (typeof data.equippedBirdId === "number") equippedBirdId = data.equippedBirdId;
-      } catch(e) {}
-    }
-
-    loadProgress();
-
-    // ---------- Game reset ----------
-    let jumpButton = { x: canvas.width - 90, y: canvas.height - 90, w: 70, h: 70 };
-
-    function resetGame() {
-      bird.y = 150;
-      bird.velocity = 0;
-      bird2.y = 150;
-      bird2.velocity = 0;
-      pipes = [];
-      frame = 0;
-      score = 0;
-      jumpParticles = [];
-      scorePops = [];
-
-      bird.gravity = GAME_SETTINGS.gravity;
-      bird.lift = GAME_SETTINGS.lift;
-      bird2.gravity = GAME_SETTINGS.gravity;
-      bird2.lift = GAME_SETTINGS.lift;
-
-      jumpButton = { x: canvas.width - 90, y: canvas.height - 90, w: 70, h: 70 };
-    }
-
-    function updateBirdSingle(b) {
-      b.velocity += b.gravity;
-      b.y += b.velocity;
-      if (b.y + b.height > canvas.height || b.y < 0) {
-        endRun();
-      }
-    }
-
-    function updatePipes() {
-      pipes.forEach(p => p.x -= GAME_SETTINGS.pipeSpeed);
-
-      if (frame % 120 === 0) {
-        let gap = GAME_SETTINGS.gap;
-        let top = Math.random() * (canvas.height - gap - 100) + 20;
-        pipes.push({
-          x: canvas.width + 40,
-          width: 40,
-          top: top,
-          bottomY: top + gap,
-          passed: false
-        });
-      }
-
-      pipes.forEach(p => {
-        if (
-          bird.x < p.x + p.width &&
-          bird.x + bird.width > p.x &&
-          (bird.y < p.top || bird.y + bird.height > p.bottomY)
-        ) {
-          endRun();
-        }
-        if (isMultiplayer &&
-            bird2.x < p.x + p.width &&
-            bird2.x + bird2.width > p.x &&
-            (bird2.y < p.top || bird2.y + bird2.height > p.bottomY)
-        ) {
-          endRun();
-        }
-
-        if (!p.passed && p.x + p.width < bird.x) {
-          p.passed = true;
-          score++;
-          if (score > highScore) {
-            highScore = score;
-          }
-          addScorePop(p.x, p.top + 20);
-        }
-      });
-    }
-
-    // ---------- End run ----------
-    function endRun() {
-      gameState = "dead";
-      const finalScore = Math.floor(score * getBirdMultiplier());
-      const earned = Math.floor(score * getBirdMultiplier() * 2 * GAME_SETTINGS.coinMult);
-      coins += earned;
-      saveProgress();
-    }
-
-    // ---------- UI ----------
-    function drawScore() {
-      ctx.fillStyle = "white";
-      ctx.font = "40px Arial";
-      ctx.fillText(score, canvas.width / 2 - 10, 60);
-    }
-
-    function drawCoins() {
-      ctx.fillStyle = "yellow";
-      ctx.font = "20px Arial";
-      ctx.fillText("Coins: " + coins, 10, 30);
-    }
-
-    function drawCountdown(text) {
-      ctx.fillStyle = "black";
-      ctx.font = "60px Arial";
-      ctx.fillText(text, canvas.width / 2 - 30, canvas.height / 2);
-    }
-
-    function drawJumpButton() {
-      ctx.fillStyle = "rgba(255,255,255,0.3)";
-      ctx.fillRect(jumpButton.x, jumpButton.y, jumpButton.w, jumpButton.h);
-      ctx.fillStyle = "white";
-      ctx.font = "16px Arial";
-      ctx.fillText("JUMP", jumpButton.x + 10, jumpButton.y + 40);
-    }
-
-    function drawDeathScreen() {
-      ctx.fillStyle = "rgba(0,0,0,0.5)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.fillStyle = "white";
-      ctx.font = "50px Arial";
-      ctx.fillText("YOU DIED", 80, 230);
-
-      ctx.font = "24px Arial";
-      const finalScore = Math.floor(score * getBirdMultiplier());
-      const earnedCoins = Math.floor(score * getBirdMultiplier() * 2 * GAME_SETTINGS.coinMult);
-
-      ctx.fillText("Score: " + score, 140, 280);
-      ctx.fillText("Mult: x" + getBirdMultiplier(), 140, 310);
-      ctx.fillText("Final: " + finalScore, 140, 340);
-      ctx.fillText("High Score: " + highScore, 120, 370);
-      ctx.fillText("Coins Earned: " + earnedCoins, 110, 400);
-
-      ctx.font = "20px Arial";
-      ctx.fillText("Press any key to return to menu", 60, 450);
-    }
-
-    // ---------- Menus & buttons ----------
-    let menuButtons = {};
-    let mapButtons = {};
-    let packButtons = {};
-    let indexBackButton = null;
-    let shopBackButton = null;
-    let settingsButtons = {};
-
-    // scrolling state (momentum) per screen
-    let scrollMain = 0, scrollMainVel = 0, scrollMainMax = 0;
-    let scrollMap = 0, scrollMapVel = 0, scrollMapMax = 0;
-    let indexScroll = 0, indexScrollVel = 0, indexScrollMax = 0;
-    let shopScroll = 0, shopScrollVel = 0, shopScrollMax = 0;
-    let settingsScroll = 0, settingsScrollVel = 0, settingsScrollMax = 0; // kept for completeness
-
-    const SCROLL_FRICTION = 0.94;
-    const SCROLL_SPEED = 0.4;
-
-    function applyMomentumScroll(scroll, vel, max) {
-      scroll += vel;
-      vel *= SCROLL_FRICTION;
-      if (scroll < 0) {
-        scroll = 0;
-        vel = 0;
-      }
-      if (scroll > max) {
-        scroll = max;
-        vel = 0;
-      }
-      return { scroll, vel };
-    }
-
-    // ---------- Main menu ----------
-    function drawMainMenu() {
-      ctx.fillStyle = maps[selectedMap].bg;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      drawDecorations();
-
-      const idleOffset = Math.sin(frame/30)*3;
-
-      ctx.save();
-      ctx.translate(0, -scrollMain);
-
-      ctx.fillStyle = "white";
-      ctx.font = "32px Arial";
-      ctx.fillText("Flappy Bird Deluxe", 40, 120);
-
-      drawCoins();
-
-      ctx.fillStyle = "white";
-      ctx.fillRect(80, 160, 240, 60);
-      ctx.fillStyle = "black";
-      ctx.font = "22px Arial";
-      ctx.fillText("Single Player", 120, 198);
-
-      ctx.fillStyle = "white";
-      ctx.fillRect(80, 240, 240, 60);
-      ctx.fillStyle = "black";
-      ctx.fillText("Multiplayer", 135, 278);
-
-      ctx.fillStyle = "white";
-      ctx.fillRect(80, 320, 240, 60);
-      ctx.fillStyle = "black";
-      ctx.fillText("Bird Index", 135, 358);
-
-      ctx.fillStyle = "white";
-      ctx.fillRect(80, 400, 240, 60);
-      ctx.fillStyle = "black";
-      ctx.fillText("Shop (Eggs)", 125, 438);
-
-      ctx.fillStyle = "white";
-      ctx.fillRect(80, 480, 240, 60);
-      ctx.fillStyle = "black";
-      ctx.fillText("Map Select", 135, 518);
-
-      menuButtons = {
-        single: { x:80, y:160, w:240, h:60 },
-        multi:  { x:80, y:240, w:240, h:60 },
-        index:  { x:80, y:320, w:240, h:60 },
-        shop:   { x:80, y:400, w:240, h:60 },
-        map:    { x:80, y:480, w:240, h:60 }
-      };
-
-      ctx.fillStyle = "white";
-      ctx.font = "18px Arial";
-      ctx.fillText("Equipped:", 10, 560);
-      drawBirdSprite(getEquippedBird(), 110, 550 + idleOffset);
-
-      ctx.restore();
-
-      // content height for scroll
-      const contentBottom = 560 + 40;
-      scrollMainMax = Math.max(0, contentBottom - canvas.height);
-    }
-
-    // ---------- Map select ----------
-    function drawMapSelect() {
-      ctx.fillStyle = "#222";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.save();
-      ctx.translate(0, -scrollMap);
-
-      ctx.fillStyle = "white";
-      ctx.font = "36px Arial";
-      ctx.fillText("Select Map", 110, 80);
-
-      let y = 150;
-      mapButtons = {};
-      for (let key of Object.keys(maps)) {
-        const m = maps[key];
-        ctx.fillStyle = "white";
-        ctx.fillRect(80, y-30, 240, 60);
-        ctx.fillStyle = "black";
-        ctx.font = "20px Arial";
-        ctx.fillText(m.name, 100, y+5);
-        mapButtons[key] = { x:80, y:y-30, w:240, h:60 };
-        y += 80;
-      }
-
-      ctx.fillStyle = "white";
-      ctx.fillRect(20, 20, 80, 40);
-      ctx.fillStyle = "black";
-      ctx.font = "20px Arial";
-      ctx.fillText("Back", 40, 48);
-
-      ctx.restore();
-
-      const contentBottom = y;
-      scrollMapMax = Math.max(0, contentBottom - canvas.height);
-    }
-
-    // ---------- Bird Index (sortable + filter) ----------
-    let indexSortMode = "rarity";
-    let indexFilterRarity = "All";
-
-    function getSortedFilteredBirds() {
-      let list = allBirds.slice();
-
-      if (indexFilterRarity !== "All") {
-        list = list.filter(b => b.rarity === indexFilterRarity);
-      }
-
-      if (indexSortMode === "rarity") {
-        const order = ["Mythic","Legendary","Epic","Rare","Uncommon","Common"];
-        list.sort((a,b) => order.indexOf(a.rarity) - order.indexOf(b.rarity));
-      } else if (indexSortMode === "name") {
-        list.sort((a,b) => a.name.localeCompare(b.name));
-      } else if (indexSortMode === "mult") {
-        list.sort((a,b) => b.multiplier - a.multiplier);
-      }
-
-      return list;
-    }
-
-    function drawBirdIndex() {
-      ctx.fillStyle = "#222";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.save();
-      ctx.translate(0, -indexScroll);
-
-      ctx.fillStyle = "white";
-      ctx.font = "36px Arial";
-      ctx.fillText("Bird Index", 110, 60);
-
-      ctx.font = "16px Arial";
-      ctx.fillText("Sort:", 20, 100);
-
-      ctx.fillStyle = indexSortMode === "rarity" ? "#00e676" : "white";
-      ctx.fillRect(60, 80, 80, 30);
-      ctx.fillStyle = "black";
-      ctx.fillText("Rarity", 70, 100);
-
-      ctx.fillStyle = indexSortMode === "name" ? "#00e676" : "white";
-      ctx.fillRect(150, 80, 80, 30);
-      ctx.fillStyle = "black";
-      ctx.fillText("Name", 165, 100);
-
-      ctx.fillStyle = indexSortMode === "mult" ? "#00e676" : "white";
-      ctx.fillRect(240, 80, 110, 30);
-      ctx.fillStyle = "black";
-      ctx.fillText("Multiplier", 250, 100);
-
-      settingsButtons.indexSortRarity = { x:60, y:80, w:80, h:30 };
-      settingsButtons.indexSortName = { x:150, y:80, w:80, h:30 };
-      settingsButtons.indexSortMult = { x:240, y:80, w:110, h:30 };
-
-      ctx.fillStyle = "white";
-      ctx.fillText("Filter:", 20, 135);
-
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(80, 120, 200, 30);
-      ctx.fillStyle = "black";
-      ctx.fillText(indexFilterRarity, 90, 140);
-
-      settingsButtons.indexFilter = { x:80, y:120, w:200, h:30 };
-
-      let birdsPerRow = 3;
-      let boxSize = 90;
-      let padding = 20;
-      let startX = 20;
-      let startY = 170;
-
-      const birdsToShow = getSortedFilteredBirds();
-
-      let rows = Math.ceil(birdsToShow.length / birdsPerRow);
-      let contentHeight = rows * (boxSize + 70);
-      indexScrollMax = Math.max(0, contentHeight - (canvas.height - startY - 40));
-
-      let i = 0;
-      for (let birdObj of birdsToShow) {
-        let col = i % birdsPerRow;
-        let row = Math.floor(i / birdsPerRow);
-
-        let x = startX + col * (boxSize + padding);
-        let y = startY + row * (boxSize + 70);
-
-        if (y > -150 && y < canvas.height + 150 + indexScrollMax) {
-          const unlocked = unlockedBirdIds.includes(birdObj.id);
-
-          ctx.fillStyle = unlocked ? "#ffffff" : "#555555";
-          ctx.fillRect(x, y, boxSize, boxSize);
-
-          if (unlocked) {
-            drawBirdSprite(birdObj, x + boxSize/2, y + boxSize/2 - 5);
-          } else {
-            ctx.fillStyle = "#333333";
-            ctx.font = "20px Arial";
-            ctx.fillText("?", x + boxSize/2 - 5, y + boxSize/2 + 5);
-          }
-
-          ctx.fillStyle = "white";
-          ctx.font = "14px Arial";
-          ctx.fillText(birdObj.name, x, y + boxSize + 18);
-
-          ctx.fillStyle = rarityColors[birdObj.rarity];
-          ctx.fillText(birdObj.rarity, x, y + boxSize + 34);
-
-          ctx.fillStyle = "yellow";
-          ctx.fillText("x" + birdObj.multiplier, x, y + boxSize + 50);
-
-          if (unlocked) {
-            ctx.fillStyle = "white";
-            ctx.font = "10px Arial";
-            ctx.fillText("Click to equip", x, y + boxSize + 64);
-          }
-        }
-
-        i++;
-      }
-
-      ctx.fillStyle = "white";
-      ctx.fillRect(20, 20, 80, 40);
-      ctx.fillStyle = "black";
-      ctx.font = "20px Arial";
-      ctx.fillText("Back", 40, 48);
-
-      indexBackButton = { x:20, y:20, w:80, h:40 };
-
-      ctx.restore();
-    }
-
-    // ---------- Shop / Eggs ----------
-    function drawShop() {
-      ctx.fillStyle = "#111";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.save();
-      ctx.translate(0, -shopScroll);
-
-      ctx.fillStyle = "white";
-      ctx.font = "32px Arial";
-      ctx.fillText("Shop - Eggs", 110, 60);
-
-      drawCoins();
-
-      let y = 130;
-      packButtons = {};
-      for (let key of Object.keys(packs)) {
-        const p = packs[key];
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(40, y-30, 320, 70);
-
-        ctx.fillStyle = "#000000";
-        ctx.font = "20px Arial";
-        ctx.fillText(p.name, 60, y);
-        ctx.fillText(p.cost + " coins", 250, y);
-
-        packButtons[key] = { x:40, y:y-30, w:320, h:70 };
-        y += 90;
-      }
-
-      ctx.fillStyle = "white";
-      ctx.fillRect(20, 20, 80, 40);
-      ctx.fillStyle = "black";
-      ctx.font = "20px Arial";
-      ctx.fillText("Back", 40, 48);
-
-      shopBackButton = { x:20, y:20, w:80, h:40 };
-
-      ctx.restore();
-
-      const contentBottom = y;
-      shopScrollMax = Math.max(0, contentBottom - canvas.height);
-    }
-
-    // ---------- Egg drawing (pixelated style) ----------
-    function drawEggForPack(packKey, cx, cy, crackLevel, shake) {
-      const colors = {
-        basic: "#ffffff",
-        premium: "#ffeb3b",
-        mythic: "#b39ddb"
-      };
-      const c = colors[packKey] || "#ffffff";
-
-      const size = 40;
-      const x = cx - size/2 + (shake || 0);
-      const y = cy - size/2;
-
-      ctx.fillStyle = c;
-      ctx.fillRect(x+10, y+5, 20, 30);
-      ctx.fillRect(x+8, y+10, 24, 20);
-      ctx.fillRect(x+12, y+2, 16, 6);
-
-      if (crackLevel >= 1) {
-        ctx.fillStyle = "#555";
-        ctx.fillRect(x+15, y+18, 2, 6);
-        ctx.fillRect(x+19, y+22, 2, 6);
-        ctx.fillRect(x+23, y+18, 2, 6);
-      }
-      if (crackLevel >= 2) {
-        ctx.fillStyle = "#333";
-        ctx.fillRect(x+14, y+24, 4, 4);
-        ctx.fillRect(x+22, y+24, 4, 4);
-      }
-    }
-
-    // ---------- Rarity star burst ----------
-    let rollAnim = {
-      timer: 0,
-      phase: "egg",
-      stars: []
-    };
-    let lastRolledBird = null;
-    let lastRollPackKey = null;
-    let lastRollNew = false;
-
-    function spawnRarityStars(birdObj) {
-      rollAnim.stars = [];
-      let count = 5;
-      const rarity = birdObj.rarity;
-      let color = rarityColors[rarity] || "#ffffff";
-
-      if (rarity === "Common") count = 5;
-      else if (rarity === "Uncommon") count = 7;
-      else if (rarity === "Rare") count = 9;
-      else if (rarity === "Epic") count = 11;
-      else if (rarity === "Legendary") count = 13;
-      else if (rarity === "Mythic") count = 15;
-
-      for (let i=0;i<count;i++) {
-        rollAnim.stars.push({
-          x: canvas.width/2,
-          y: 260,
-          vx: (Math.random()-0.5)*3,
-          vy: (Math.random()-0.5)*3,
-          life: 40,
-          color
-        });
-      }
-    }
-
-    function updateRarityStars() {
-      rollAnim.stars.forEach(s => {
-        s.x += s.vx;
-        s.y += s.vy;
-        s.life--;
-      });
-      rollAnim.stars = rollAnim.stars.filter(s => s.life>0);
-    }
-
-    function drawRarityStars() {
-      rollAnim.stars.forEach(s => {
-        const alpha = s.life/40;
-        ctx.globalAlpha = alpha;
-        ctx.fillStyle = s.color;
-        ctx.beginPath();
-        ctx.moveTo(s.x, s.y-4);
-        ctx.lineTo(s.x+3, s.y);
-        ctx.lineTo(s.x, s.y+4);
-        ctx.lineTo(s.x-3, s.y);
-        ctx.closePath();
-        ctx.fill();
-        ctx.globalAlpha = 1;
-      });
-    }
-
-    // ---------- Roll screen (egg animation) ----------
-    function drawRollScreen() {
-      ctx.fillStyle = "#000";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      ctx.fillStyle = "white";
-      ctx.font = "32px Arial";
-      ctx.fillText("You hatched:", 110, 80);
-
-      if (!lastRolledBird || !lastRollPackKey) return;
-
-      const cx = canvas.width/2;
-      const cy = 230;
-
-      const t = rollAnim.timer;
-
-      if (rollAnim.phase === "egg") {
-        const shake = Math.sin(t/5)*3;
-        drawEggForPack(lastRollPackKey, cx, cy, 0, shake);
-      } else if (rollAnim.phase === "crack") {
-        const shake = Math.sin(t/3)*4;
-        const crackLevel = t > 40 ? 2 : 1;
-        drawEggForPack(lastRollPackKey, cx, cy, crackLevel, shake);
-      } else if (rollAnim.phase === "reveal") {
-        drawEggForPack(lastRollPackKey, cx, cy+10, 2, 0);
-        drawBirdSprite(lastRolledBird, cx, cy);
-        drawRarityStars();
-      }
-
-      if (rollAnim.phase === "reveal") {
-        ctx.fillStyle = "white";
-        ctx.font = "24px Arial";
-        ctx.fillText(lastRolledBird.name, 150, 300);
-
-        ctx.fillStyle = rarityColors[lastRolledBird.rarity];
-        ctx.fillText(lastRolledBird.rarity, 150, 330);
-
-        ctx.fillStyle = "yellow";
-        ctx.fillText("x" + lastRolledBird.multiplier, 150, 360);
-
-        if (lastRollNew) {
-          ctx.fillStyle = "#00e676";
-          ctx.font = "24px Arial";
-          ctx.fillText("NEW!", 170, 390);
-        }
-
-        ctx.fillStyle = "white";
-        ctx.font = "18px Arial";
-        ctx.fillText("Click to continue", 130, 440);
-      } else {
-        ctx.fillStyle = "white";
-        ctx.font = "18px Arial";
-        ctx.fillText("Hatching...", 150, 440);
-      }
-    }
-
-    function updateRollAnimation() {
-      if (!lastRolledBird) return;
-
-      rollAnim.timer++;
-
-      if (rollAnim.phase === "egg" && rollAnim.timer > 40) {
-        rollAnim.phase = "crack";
-        rollAnim.timer = 0;
-      } else if (rollAnim.phase === "crack" && rollAnim.timer > 40) {
-        rollAnim.phase = "reveal";
-        rollAnim.timer = 0;
-        spawnRarityStars(lastRolledBird);
-      }
-
-      if (rollAnim.phase === "reveal") {
-        updateRarityStars();
-      }
-    }
-
-    // ---------- Countdown ----------
-    function countdownTick() {
-      countdown--;
-      if (countdown > 0) {
-        setTimeout(countdownTick, 1000);
-      } else {
-        gameState = isMultiplayer ? "playingMulti" : "playing";
-      }
-    }
-
-    // ---------- Input ----------
-    document.addEventListener("keydown", (e) => {
-      if (gameState === "playing") {
-        bird.velocity = bird.lift;
-        spawnJumpParticles(bird.x, bird.y);
-      } else if (gameState === "playingMulti") {
-        if (e.key === "w" || e.key === "W") {
-          bird.velocity = bird.lift;
-          spawnJumpParticles(bird.x, bird.y);
-        }
-        if (e.key === "ArrowUp") {
-          bird2.velocity = bird2.lift;
-          spawnJumpParticles(bird2.x, bird2.y);
-        }
-      } else if (gameState === "dead") {
-        resetGame();
-        gameState = "mainMenu";
-      }
-    });
-
-    // momentum scroll on canvas only
-    canvas.addEventListener("wheel", (e) => {
-      e.preventDefault();
-
-      const dy = e.deltaY * SCROLL_SPEED;
-
-      if (gameState === "mainMenu") {
-        scrollMainVel += dy;
-      } else if (gameState === "mapSelect") {
-        scrollMapVel += dy;
-      } else if (gameState === "index") {
-        indexScrollVel += dy;
-      } else if (gameState === "shop") {
-        shopScrollVel += dy;
-      }
-    }, { passive:false });
-
-    canvas.addEventListener("click", (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const mx = e.clientX - rect.left;
-      const my = e.clientY - rect.top;
-
-      if (gameState === "playing" || gameState === "playingMulti") {
-        if (inside(mx,my,jumpButton)) {
-          if (gameState === "playing") {
-            bird.velocity = bird.lift;
-            spawnJumpParticles(bird.x, bird.y);
-          } else {
-            bird.velocity = bird.lift;
-            spawnJumpParticles(bird.x, bird.y);
-          }
-          return;
-        }
-      }
-
-      if (gameState === "mainMenu") {
-        const myAdj = my + scrollMain;
-
-        if (inside(mx,myAdj,menuButtons.single)) {
-          resetGame();
-          isMultiplayer = false;
-          countdown = 3;
-          gameState = "countdown";
-          setTimeout(countdownTick, 1000);
-        } else if (inside(mx,myAdj,menuButtons.multi)) {
-          resetGame();
-          isMultiplayer = true;
-          countdown = 3;
-          gameState = "countdown";
-          setTimeout(countdownTick, 1000);
-        } else if (inside(mx,myAdj,menuButtons.index)) {
-          gameState = "index";
-        } else if (inside(mx,myAdj,menuButtons.shop)) {
-          gameState = "shop";
-        } else if (inside(mx,myAdj,menuButtons.map)) {
-          gameState = "mapSelect";
-        }
-
-      } else if (gameState === "mapSelect") {
-        const myAdj = my + scrollMap;
-        if (inside(mx,myAdj,{x:20,y:20,w:80,h:40})) {
-          gameState = "mainMenu";
-          return;
-        }
-        for (let key of Object.keys(mapButtons)) {
-          if (inside(mx,myAdj,mapButtons[key])) {
-            selectedMap = key;
-            initMapAnimations();
-            gameState = "mainMenu";
-            return;
-          }
-        }
-
-      } else if (gameState === "index") {
-        const myAdj = my + indexScroll;
-
-        if (inside(mx,myAdj,indexBackButton)) {
-          gameState = "mainMenu";
-          return;
-        }
-
-        if (inside(mx,myAdj,settingsButtons.indexSortRarity)) {
-          indexSortMode = "rarity";
-        } else if (inside(mx,myAdj,settingsButtons.indexSortName)) {
-          indexSortMode = "name";
-        } else if (inside(mx,myAdj,settingsButtons.indexSortMult)) {
-          indexSortMode = "mult";
-        } else if (inside(mx,myAdj,settingsButtons.indexFilter)) {
-          const order = ["All","Common","Uncommon","Rare","Epic","Legendary","Mythic"];
-          let idx = order.indexOf(indexFilterRarity);
-          idx = (idx + 1) % order.length;
-          indexFilterRarity = order[idx];
+    function buyPack(packId) {
+        let pack = PACKS_CONFIG.find(p => p.id === packId);
+        if(!pack) return;
+        if(playerState.currencies[pack.currency] >= pack.cost) {
+            playerState.currencies[pack.currency] -= pack.cost;
+            updateTopBar();
+            triggerPackAnimation(pack);
         } else {
-          let birdsPerRow = 3;
-          let boxSize = 90;
-          let padding = 20;
-          let startX = 20;
-          let startY = 170;
-
-          const birdsToShow = getSortedFilteredBirds();
-
-          for (let i=0;i<birdsToShow.length;i++) {
-            let col = i % birdsPerRow;
-            let row = Math.floor(i / birdsPerRow);
-
-            let x = startX + col * (boxSize + padding);
-            let y = startY + row * (boxSize + 70);
-
-            let box = { x:x, y:y, w:boxSize, h:boxSize };
-
-            if (inside(mx,myAdj,box)) {
-              const b = birdsToShow[i];
-              if (unlockedBirdIds.includes(b.id)) {
-                equippedBirdId = b.id;
-                saveProgress();
-              }
-            }
-          }
+            alert("Insufficient Funds!");
         }
-
-      } else if (gameState === "shop") {
-        const myAdj = my + shopScroll;
-        if (inside(mx,myAdj,shopBackButton)) {
-          gameState = "mainMenu";
-          return;
-        }
-        for (let key of Object.keys(packButtons)) {
-          if (inside(mx,myAdj,packButtons[key])) {
-            const pack = packs[key];
-            if (coins >= pack.cost) {
-              coins -= pack.cost;
-              const birdId = rollFromPack(key);
-              const birdObj = getBirdById(birdId);
-              lastRolledBird = birdObj;
-              lastRollPackKey = key;
-              if (!unlockedBirdIds.includes(birdId)) {
-                unlockedBirdIds.push(birdId);
-                lastRollNew = true;
-              } else {
-                lastRollNew = false;
-              }
-              saveProgress();
-              rollAnim.timer = 0;
-              rollAnim.phase = "egg";
-              rollAnim.stars = [];
-              gameState = "roll";
-            }
-          }
-        }
-      } else if (gameState === "roll") {
-        if (rollAnim.phase === "reveal") {
-          gameState = "shop";
-        }
-      }
-    });
-
-    function inside(mx,my,btn) {
-      if (!btn) return false;
-      return mx > btn.x && mx < btn.x+btn.w && my > btn.y && my < btn.y+btn.h;
     }
 
-    // ---------- Main loop ----------
-    function loop() {
-      updateMapAnimations();
+    function triggerPackAnimation(pack) {
+        let overlay = document.getElementById("pack-animation-overlay");
+        let cube = document.getElementById("anim-pack-cube");
+        let reveal = document.getElementById("reward-reveal");
+        
+        overlay.style.display = "flex";
+        cube.style.display = "block";
+        reveal.style.display = "none";
 
-      // apply momentum scroll
-      if (gameState === "mainMenu") {
-        const r = applyMomentumScroll(scrollMain, scrollMainVel, scrollMainMax);
-        scrollMain = r.scroll; scrollMainVel = r.vel;
-      } else if (gameState === "mapSelect") {
-        const r = applyMomentumScroll(scrollMap, scrollMapVel, scrollMapMax);
-        scrollMap = r.scroll; scrollMapVel = r.vel;
-      } else if (gameState === "index") {
-        const r = applyMomentumScroll(indexScroll, indexScrollVel, indexScrollMax);
-        indexScroll = r.scroll; indexScrollVel = r.vel;
-      } else if (gameState === "shop") {
-        const r = applyMomentumScroll(shopScroll, shopScrollVel, shopScrollMax);
-        shopScroll = r.scroll; shopScrollVel = r.vel;
-      }
+        let poolBirds = BIRDS_DATABASE.filter(b => b.pack === pack.contains[0] || pack.contains.includes(b.rarity));
+        if(poolBirds.length === 0) poolBirds = BIRDS_DATABASE; 
 
-      if (gameState === "mainMenu") {
-        drawMainMenu();
-        frame++;
-        requestAnimationFrame(loop);
-        return;
-      }
+        let selectedBird = poolBirds[Math.floor(Math.random() * poolBirds.length)];
+        let isMutation = Math.random() < 0.08;
+        let mutType = Math.random() > 0.5 ? "shiny" : "shadow";
 
-      if (gameState === "mapSelect") {
-        drawMapSelect();
-        frame++;
-        requestAnimationFrame(loop);
-        return;
-      }
+        setTimeout(() => {
+            cube.style.display = "none";
+            reveal.style.display = "block";
 
-      if (gameState === "index") {
-        drawBirdIndex();
-        frame++;
-        requestAnimationFrame(loop);
-        return;
-      }
+            if(!playerState.unlockedBirds.includes(selectedBird.id)) {
+                playerState.unlockedBirds.push(selectedBird.id);
+            }
+            if(isMutation) {
+                let mutationStr = selectedBird.id + ":" + mutType;
+                if(!playerState.mutations.includes(mutationStr)) {
+                    playerState.mutations.push(mutationStr);
+                }
+                document.getElementById("reward-title").style.color = "#ff00ff";
+                document.getElementById("reward-title").innerText = "MUTATION ACQUIRED!";
+                document.getElementById("reward-name").innerText = mutType.toUpperCase() + " " + selectedBird.name;
+                document.getElementById("reward-visual").style.backgroundColor = (mutType === 'shiny') ? '#ffd700' : '#111';
+                document.getElementById("reward-visual").style.borderColor = (mutType === 'shiny') ? '#b8860b' : '#000';
+            } else {
+                document.getElementById("reward-title").style.color = "#00ff66";
+                document.getElementById("reward-title").innerText = "BIRD UNLOCKED!";
+                document.getElementById("reward-name").innerText = selectedBird.name;
+                document.getElementById("reward-visual").style.backgroundColor = selectedBird.baseColor;
+                document.getElementById("reward-visual").style.borderColor = selectedBird.secondaryColor;
+            }
 
-      if (gameState === "shop") {
-        drawShop();
-        frame++;
-        requestAnimationFrame(loop);
-        return;
-      }
-
-      if (gameState === "roll") {
-        updateRollAnimation();
-        drawRollScreen();
-        frame++;
-        requestAnimationFrame(loop);
-        return;
-      }
-
-      ctx.fillStyle = maps[selectedMap].bg;
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      drawDecorations();
-
-      if (gameState === "countdown") {
-        drawCountdown(countdown);
-        frame++;
-        requestAnimationFrame(loop);
-        return;
-      }
-
-      if (gameState === "playing") {
-        drawBird();
-        drawPipes();
-        updateBirdSingle(bird);
-        updatePipes();
-        updateJumpParticles();
-        updateScorePops();
-        drawJumpParticles();
-        drawScorePops();
-        drawScore();
-        drawCoins();
-        drawJumpButton();
-        frame++;
-      }
-
-      if (gameState === "playingMulti") {
-        ctx.strokeStyle = "rgba(255,255,255,0.4)";
-        ctx.beginPath();
-        ctx.moveTo(canvas.width/2, 0);
-        ctx.lineTo(canvas.width/2, canvas.height);
-        ctx.stroke();
-
-        ctx.fillStyle = "white";
-        ctx.font = "14px Arial";
-        ctx.fillText("P1 (W)", 10, 20);
-        ctx.fillText("P2 (↑)", canvas.width-70, 20);
-
-        drawBird();
-        drawBird2();
-        drawPipes();
-        updateBirdSingle(bird);
-        updateBirdSingle(bird2);
-        updatePipes();
-        updateJumpParticles();
-        updateScorePops();
-        drawJumpParticles();
-        drawScorePops();
-        drawScore();
-        drawCoins();
-        drawJumpButton();
-        frame++;
-      }
-
-      if (gameState === "dead") {
-        drawDeathScreen();
-        frame++;
-      }
-
-      requestAnimationFrame(loop);
+            document.getElementById("reward-meta").innerText = `Rarity Tier: ${selectedBird.rarity} (${selectedBird.scoreMulti.toFixed(1)}x Multiplier)`;
+            saveGame();
+        }, 1500);
     }
 
-    resetGame();
-    loop();
-  </script>
+    function closePackAnimation() {
+        document.getElementById("pack-animation-overlay").style.display = "none";
+        updateMenuDisplay();
+    }
+
+    // --- MAP SYSTEM ---
+    function renderMaps() {
+        let list = document.getElementById("maps-list");
+        list.innerHTML = "";
+        MAPS_CONFIG.forEach(map => {
+            let card = document.createElement("div");
+            card.className = "map-card " + (playerState.selectedMap === map.id ? "selected" : "");
+            card.style.backgroundColor = map.sky;
+            card.style.color = "#fff";
+            card.innerText = map.name;
+            card.onclick = () => {
+                playerState.selectedMap = map.id;
+                saveGame();
+                renderMaps();
+            };
+            list.appendChild(card);
+        });
+    }
+
+    // --- UPGRADES MECHANICS ---
+    function buyUpgrade(type) {
+        let currentLvl = playerState.upgrades[type] || 1;
+        let cost = currentLvl * (type === 'coin' ? 100 : 50);
+        let currType = type === 'coin' ? 'coins' : 'gems';
+
+        if(playerState.currencies[currType] >= cost) {
+            playerState.currencies[currType] -= cost;
+            playerState.upgrades[type] = currentLvl + 1;
+            saveGame();
+            updateTopBar();
+            updateMenuDisplay();
+        } else {
+            alert("Insufficient currency!");
+        }
+    }
+
+    // --- WHEEL SYSTEM ---
+    function spinWheel() {
+        let now = Date.now();
+        if(now - playerState.lastWheelSpin < 30000) { 
+            document.getElementById("wheel-status-msg").innerText = "Wheel on cooldown! Ready in a few seconds.";
+            return;
+        }
+        playerState.lastWheelSpin = now;
+        let wheel = document.getElementById("wheel-object");
+        let deg = Math.floor(Math.random() * 360) + 2160; 
+        wheel.style.transform = `rotate(${deg}deg)`;
+
+        document.getElementById("btn-spin-wheel").disabled = true;
+
+        setTimeout(() => {
+            document.getElementById("btn-spin-wheel").disabled = false;
+            let sector = Math.floor((deg % 360) / 60);
+            let prizeStr = "";
+            if(sector === 0) { playerState.currencies.coins += 200; prizeStr = "200 Coins! 🪙"; }
+            else if(sector === 1) { playerState.currencies.gems += 20; prizeStr = "20 Gems! 💎"; }
+            else if(sector === 2) { playerState.currencies.feathers += 5; prizeStr = "5 Feathers! 🪶"; }
+            else if(sector === 3) { playerState.currencies.eggs += 5; prizeStr = "5 Eggs! 🥚"; }
+            else if(sector === 4) { playerState.currencies.essence += 2; prizeStr = "2 Essence! 🧪"; }
+            else { playerState.currencies.coins += 500; prizeStr = "SUPER JACKPOT: 500 Coins! 🪙"; }
+
+            document.getElementById("wheel-status-msg").innerText = "Won: " + prizeStr;
+            saveGame();
+            updateTopBar();
+        }, 4000);
+    }
+
+    // --- HIGH RESOLUTION GRAPHICS CANVAS ENGINE ---
+    const canvas = document.getElementById("gameCanvas");
+    const ctx = canvas.getContext("2d");
+    let gameLoopId = null;
+
+    let birdY, birdVelocity, birdX, birdSize;
+    let gravity, jumpStrength;
+    let pipes = [];
+    let gameScore = 0;
+    let isGameOver = false;
+    let pipeSpeed = 3.0;
+    let frameCount = 0;
+    let tailParticles = [];
+
+    function resizeCanvas() {
+        canvas.width = canvas.parentElement.clientWidth || 480;
+        canvas.height = canvas.parentElement.clientHeight || 800;
+    }
+
+    function startGame() {
+        switchScreen('game-screen');
+        resizeCanvas();
+        
+        birdX = canvas.width * 0.25;
+        birdY = canvas.height / 2;
+        birdSize = 34; 
+        birdVelocity = 0;
+        gravity = 0.45;
+        jumpStrength = -8.2;
+        pipes = [];
+        gameScore = 0;
+        isGameOver = false;
+        frameCount = 0;
+        tailParticles = [];
+
+        document.getElementById("game-score-display").innerText = "0";
+        
+        let currentActive = BIRDS_DATABASE.find(b => b.id === playerState.activeBirdId) || BIRDS_DATABASE[0];
+        let displayMulti = currentActive.scoreMulti;
+        if(playerState.activeMutation) displayMulti *= 2;
+        document.getElementById("game-multiplier-display").innerText = "Multi: " + displayMulti.toFixed(1) + "x";
+
+        // Hybrid PC/Mobile Listeners
+        canvas.removeEventListener('touchstart', handleInputFlap);
+        canvas.addEventListener('touchstart', handleInputFlap, {passive: true});
+        canvas.removeEventListener('mousedown', handleInputFlap);
+        canvas.addEventListener('mousedown', handleInputFlap);
+        
+        window.removeEventListener('keydown', handleKeyDown);
+        window.addEventListener('keydown', handleKeyDown);
+
+        if(gameLoopId) cancelAnimationFrame(gameLoopId);
+        gameLoopId = requestAnimationFrame(updateGame);
+    }
+
+    function handleInputFlap(e) {
+        if(e) e.preventDefault;
+        if(isGameOver) {
+            startGame();
+            return;
+        }
+        birdVelocity = jumpStrength;
+        
+        // Spawn jump trail particles
+        for (let i = 0; i < 5; i++) {
+            tailParticles.push({
+                x: birdX,
+                y: birdY + birdSize/2,
+                vX: -Math.random() * 3 - 1,
+                vY: (Math.random() - 0.5) * 4,
+                size: Math.random() * 6 + 4,
+                alpha: 1
+            });
+        }
+    }
+    
+    function handleKeyDown(e) {
+        if(e.code === 'Space' || e.code === 'ArrowUp') {
+            handleInputFlap();
+        }
+    }
+
+    function updateGame() {
+        frameCount++;
+        ctx.clearRect(0,0,canvas.width, canvas.height);
+
+        let activeMap = MAPS_CONFIG.find(m => m.id === playerState.selectedMap) || MAPS_CONFIG[0];
+        
+        // Draw sky
+        ctx.fillStyle = activeMap.sky;
+        ctx.fillRect(0,0,canvas.width, canvas.height);
+
+        // Apply Physics
+        birdVelocity += gravity;
+        birdY += birdVelocity;
+
+        // Process particle effects engine loops
+        for(let i = tailParticles.length - 1; i >= 0; i--) {
+            let p = tailParticles[i];
+            p.x += p.vX;
+            p.y += p.vY;
+            p.alpha -= 0.04;
+            ctx.fillStyle = `rgba(255, 255, 255, ${p.alpha})`;
+            ctx.fillRect(p.x, p.y, p.size, p.size);
+            if(p.alpha <= 0) tailParticles.splice(i, 1);
+        }
+
+        // Add passive flying micro trail
+        if(frameCount % 3 === 0) {
+            tailParticles.push({
+                x: birdX,
+                y: birdY + birdSize/2 + (Math.random() - 0.5) * 10,
+                vX: -2,
+                vY: 0,
+                size: 5,
+                alpha: 0.7
+            });
+        }
+
+        // Get Render Colors
+        let baseBird = BIRDS_DATABASE.find(b => b.id === playerState.activeBirdId) || BIRDS_DATABASE[0];
+        let mainCol = baseBird.baseColor;
+        let sideCol = baseBird.secondaryColor;
+        if(playerState.activeMutation === 'shiny') { mainCol = '#ffd700'; sideCol = '#b8860b'; }
+        if(playerState.activeMutation === 'shadow') { mainCol = '#252525'; sideCol = '#050505'; }
+
+        // --- DRAW CUBEY HD BIRD ---
+        ctx.save();
+        ctx.translate(birdX + birdSize/2, birdY + birdSize/2);
+        // Tilt bird slightly depending on velocity
+        let rotation = Math.min(Math.max(birdVelocity * 0.04, -0.4), 0.7);
+        ctx.rotate(rotation);
+        
+        // Base Body Outline Shield Shadow
+        ctx.fillStyle = '#000';
+        ctx.fillRect(-birdSize/2, -birdSize/2, birdSize, birdSize);
+        // Interior Body Fill
+        ctx.fillStyle = mainCol;
+        ctx.fillRect(-birdSize/2 + 2, -birdSize/2 + 2, birdSize - 4, birdSize - 4);
+        
+        // Wing structures (oscillates up and down)
+        let wingOscillation = Math.sin(frameCount * 0.4) * 6;
+        ctx.fillStyle = sideCol;
+        ctx.fillRect(-birdSize/2 - 2, -birdSize/4 + (wingOscillation/2), birdSize/2, birdSize/2 - wingOscillation);
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(-birdSize/2 - 2, -birdSize/4 + (wingOscillation/2), birdSize/2, birdSize/2 - wingOscillation);
+
+        // HD recognizable eyes
+        ctx.fillStyle = "#fff";
+        ctx.fillRect(birdSize/4 - 4, -birdSize/3, 10, 10);
+        ctx.fillStyle = (playerState.activeMutation === 'shadow') ? '#ff0055' : '#000'; // custom glowing eyes
+        ctx.fillRect(birdSize/4 + 2, -birdSize/3 + 3, 4, 4);
+
+        // Recognizable Beak
+        ctx.fillStyle = "#ff9800";
+        ctx.fillRect(birdSize/2 - 2, -birdSize/8, 8, 8);
+        ctx.strokeStyle = "#000";
+        ctx.strokeRect(birdSize/2 - 2, -birdSize/8, 8, 8);
+
+        ctx.restore();
+
+        // Spawn Pipes
+        if(frameCount % 90 === 0) {
+            let gap = 150;
+            let minH = 60;
+            let maxH = canvas.height - gap - minH - 120;
+            let topHeight = Math.floor(Math.random() * (maxH - minH)) + minH;
+            pipes.push({
+                x: canvas.width,
+                top: topHeight,
+                bottom: canvas.height - topHeight - gap,
+                passed: false
+            });
+        }
+
+        // Draw Shaded 3D Pipes
+        for(let i = pipes.length - 1; i >= 0; i--) {
+            let p = pipes[i];
+            p.x -= pipeSpeed;
+
+            // TOP PIPE DRAW
+            // Body outline & Fill
+            ctx.fillStyle = '#000';
+            ctx.fillRect(p.x, 0, 64, p.top);
+            ctx.fillStyle = activeMap.pipe;
+            ctx.fillRect(p.x + 3, 0, 58, p.top - 3);
+            // Lip edge shadow highlights
+            ctx.fillStyle = activeMap.pipeLip;
+            ctx.fillRect(p.x - 4, p.top - 24, 72, 24);
+            ctx.strokeStyle = '#000';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(p.x - 4, p.top - 24, 72, 24);
+
+            // BOTTOM PIPE DRAW
+            ctx.fillStyle = '#000';
+            ctx.fillRect(p.x, canvas.height - p.bottom, 64, p.bottom);
+            ctx.fillStyle = activeMap.pipe;
+            ctx.fillRect(p.x + 3, canvas.height - p.bottom + 3, 58, p.bottom);
+            // Lip edge 
+            ctx.fillStyle = activeMap.pipeLip;
+            ctx.fillRect(p.x - 4, canvas.height - p.bottom, 72, 24);
+            ctx.strokeRect(p.x - 4, canvas.height - p.bottom, 72, 24);
+
+            // Check Obstacle Intersects
+            if(birdX + birdSize - 4 > p.x - 4 && birdX + 4 < p.x + 64) {
+                if(birdY + 4 < p.top || birdY + birdSize - 4 > canvas.height - p.bottom) {
+                    isGameOver = true;
+                }
+            }
+
+            // Earn Score metric calculation passing gates
+            if(!p.passed && p.x + 32 < birdX) {
+                p.passed = true;
+                gameScore++;
+                document.getElementById("game-score-display").innerText = gameScore;
+                disburseGateRewards();
+            }
+
+            if(p.x < -75) pipes.splice(i, 1);
+        }
+
+        // Draw Ground floor level bounds
+        ctx.fillStyle = '#000';
+        ctx.fillRect(0, canvas.height - 80, canvas.width, 80);
+        ctx.fillStyle = activeMap.ground;
+        ctx.fillRect(0, canvas.height - 76, canvas.width, 76);
+
+        if(birdY + birdSize > canvas.height - 76 || birdY < -20) {
+            isGameOver = true;
+        }
+
+        if(!isGameOver) {
+            gameLoopId = requestAnimationFrame(updateGame);
+        } else {
+            ctx.fillStyle = "rgba(0,0,0,0.75)";
+            ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle = "#fff";
+            ctx.font = "bold 32px sans-serif";
+            ctx.textAlign = "center";
+            ctx.fillText("GAME OVER", canvas.width/2, canvas.height/2 - 20);
+            ctx.font = "16px sans-serif";
+            ctx.fillStyle = "#aaa";
+            ctx.fillText("Press Space or Click Screen to Restart", canvas.width/2, canvas.height/2 + 20);
+            saveGame();
+        }
+    }
+
+    function disburseGateRewards() {
+        let baseBird = BIRDS_DATABASE.find(b => b.id === playerState.activeBirdId) || BIRDS_DATABASE[0];
+        let baseMulti = baseBird.scoreMulti;
+        if(playerState.activeMutation) baseMulti *= 2;
+
+        let coinLvlBonus = 1 + ((playerState.upgrades.coin - 1) * 0.2);
+        let gemLvlBonus = 1 + ((playerState.upgrades.gem - 1) * 0.2);
+
+        playerState.currencies.coins += (1 * baseMulti * coinLvlBonus);
+        
+        if(Math.random() < 0.30) playerState.currencies.gems += (1 * baseMulti * gemLvlBonus);
+        if(Math.random() < 0.12) playerState.currencies.feathers += 1;
+        if(Math.random() < 0.10) playerState.currencies.eggs += 1;
+        if(Math.random() < 0.03) playerState.currencies.essence += 1;
+
+        updateTopBar();
+    }
+
+    // --- INITIALIZATION ---
+    window.onload = () => {
+        loadGame();
+        updateTopBar();
+        updateMenuDisplay();
+        window.addEventListener('resize', () => { if(gameLoopId) resizeCanvas(); });
+    };
+</script>
+
 </body>
 </html>
